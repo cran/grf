@@ -25,6 +25,25 @@
 #' @param alpha Maximum imbalance of a split.
 #'
 #' @return A trained quantile forest object.
+#'
+#' @examples
+#' # Train a quantile forest.
+#' n = 50; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' Y = X[,1] * rnorm(n)
+#' q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+#'
+#' # Predict using the forest.
+#' X.test = matrix(0, 101, p)
+#' X.test[,1] = seq(-2, 2, length.out = 101)
+#' q.pred = predict(q.forest, X.test)
+#'
+#' # Train a quantile forest with regression splits, as in Meinshausen (2006).
+#' n = 50; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' Y = X[,1] * rnorm(n)
+#' meins.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9), regression.splitting = TRUE)
+#'
 #' @export
 quantile_forest <- function(X, Y, quantiles = c(0.1, 0.5, 0.9), regression.splitting = FALSE,
                             sample.fraction = 0.5, mtry = ceiling(2*ncol(X)/3), num.trees = 2000,
@@ -46,7 +65,6 @@ quantile_forest <- function(X, Y, quantiles = c(0.1, 0.5, 0.9), regression.split
     sample.fraction <- validate_sample_fraction(sample.fraction)
     seed <- validate_seed(seed)
     
-    sparse.data <- as.matrix(0)
     no.split.variables <- numeric(0)
     sample.with.replacement <- FALSE
     verbose <- FALSE
@@ -58,7 +76,7 @@ quantile_forest <- function(X, Y, quantiles = c(0.1, 0.5, 0.9), regression.split
 
     ci.group.size <- 1
     
-    forest <- quantile_train(quantiles, regression.splitting, input.data, outcome.index, sparse.data,
+    forest <- quantile_train(quantiles, regression.splitting, input.data, outcome.index,
         variable.names, mtry, num.trees, verbose, num.threads, min.node.size, sample.with.replacement,
         keep.inbag, sample.fraction, no.split.variables, seed, honesty, ci.group.size, alpha)
     
@@ -82,9 +100,24 @@ quantile_forest <- function(X, Y, quantiles = c(0.1, 0.5, 0.9), regression.split
 #'                    automatically selects an appropriate amount.
 #' @param ... Additional arguments (currently ignored).
 #'
-#' @return Predictions for each test point and each desired quantile.
+#' @return Predictions at each test point for each desired quantile.
+#'
+#' @examples
+#' # Train a quantile forest.
+#' n = 50; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' Y = X[,1] * rnorm(n)
+#' q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+#'
+#' # Predict on out-of-bag training samples.
+#' q.pred = predict(q.forest)
+#'
+#' # Predict using the forest.
+#' X.test = matrix(0, 101, p)
+#' X.test[,1] = seq(-2, 2, length.out = 101)
+#' q.pred = predict(q.forest, X.test)
+#'
 #' @export
-
 predict.quantile_forest <- function(object,
                                     newdata = NULL,
                                     quantiles = c(0.1, 0.5, 0.9),
@@ -102,18 +135,17 @@ predict.quantile_forest <- function(object,
         stop("Error: Invalid value for num.threads")
     }
     
-    sparse.data <- as.matrix(0)
     variable.names <- character(0)
     
     forest.short <- object[-which(names(object) == "original.data")]
     
     if (!is.null(newdata)) {
         input.data <- as.matrix(cbind(newdata, NA))
-        quantile_predict(forest.short, quantiles, input.data, sparse.data, variable.names, 
+        quantile_predict(forest.short, quantiles, input.data, variable.names, 
                          num.threads)
     } else {
         input.data <- object[["original.data"]]
-        quantile_predict_oob(forest.short, quantiles, input.data, sparse.data, variable.names, 
+        quantile_predict_oob(forest.short, quantiles, input.data, variable.names, 
                              num.threads)
     }
 }

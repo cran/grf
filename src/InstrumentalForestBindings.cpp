@@ -14,7 +14,6 @@ Rcpp::List instrumental_train(Rcpp::NumericMatrix input_data,
                               size_t outcome_index,
                               size_t treatment_index,
                               size_t instrument_index,
-                              Rcpp::RawMatrix sparse_data,
                               std::vector<std::string> variable_names,
                               unsigned int mtry,
                               unsigned int num_trees,
@@ -29,15 +28,25 @@ Rcpp::List instrumental_train(Rcpp::NumericMatrix input_data,
                               bool honesty,
                               unsigned int ci_group_size,
                               double split_regularization,
-                              double alpha) {
-  Data* data = RcppUtilities::convert_data(input_data, sparse_data, variable_names);
+                              double alpha,
+                              double lambda,
+                              bool downweight_penalty) {
+  Data* data = RcppUtilities::convert_data(input_data, variable_names);
 
-  ForestTrainer trainer = ForestTrainers::instrumental_trainer(data,
-          outcome_index - 1,
-          treatment_index - 1,
-          instrument_index - 1,
-          split_regularization,
-          alpha);
+  ForestTrainer trainer = lambda > 0
+    ? ForestTrainers::regularized_instrumental_trainer(data,
+                                                       outcome_index - 1,
+                                                       treatment_index - 1,
+                                                       instrument_index - 1,
+                                                       split_regularization,
+                                                       lambda,
+                                                       downweight_penalty)
+    : ForestTrainers::instrumental_trainer(data,
+                                           outcome_index - 1,
+                                           treatment_index - 1,
+                                           instrument_index - 1,
+                                           split_regularization,
+                                           alpha);
   RcppUtilities::initialize_trainer(trainer, mtry, num_trees, num_threads, min_node_size,
       sample_with_replacement, sample_fraction, no_split_variables, seed, honesty, ci_group_size);
 
@@ -51,11 +60,10 @@ Rcpp::List instrumental_train(Rcpp::NumericMatrix input_data,
 // [[Rcpp::export]]
 Rcpp::List instrumental_predict(Rcpp::List forest_object,
                                 Rcpp::NumericMatrix input_data,
-                                Rcpp::RawMatrix sparse_data,
                                 std::vector <std::string> variable_names,
                                 unsigned int num_threads,
                                 unsigned int ci_group_size) {
-  Data* data = RcppUtilities::convert_data(input_data, sparse_data, variable_names);
+  Data* data = RcppUtilities::convert_data(input_data, variable_names);
   Forest forest = RcppUtilities::deserialize_forest(
       forest_object[RcppUtilities::SERIALIZED_FOREST_KEY]);
 
@@ -70,11 +78,10 @@ Rcpp::List instrumental_predict(Rcpp::List forest_object,
 // [[Rcpp::export]]
 Rcpp::List instrumental_predict_oob(Rcpp::List forest_object,
                                     Rcpp::NumericMatrix input_data,
-                                    Rcpp::RawMatrix sparse_data,
                                     std::vector <std::string> variable_names,
                                     unsigned int num_threads,
                                     unsigned int ci_group_size) {
-  Data* data = RcppUtilities::convert_data(input_data, sparse_data, variable_names);
+  Data* data = RcppUtilities::convert_data(input_data, variable_names);
   Forest forest = RcppUtilities::deserialize_forest(
       forest_object[RcppUtilities::SERIALIZED_FOREST_KEY]);
 

@@ -31,14 +31,37 @@
 #'                            causal forest on the residuals? This approach is
 #'                            recommended, computational resources permitting.
 #' @param alpha Maximum imbalance of a split.
+#' @param lambda A tuning parameter to control the amount of split regularization (experimental).
+#' @param downweight.penalty Whether or not the regularization penalty should be downweighted (experimental).
 #' @param seed The seed of the c++ random number generator.
 #'
 #' @return A trained causal forest object.
+#'
+#' @examples
+#' # Train a causal forest.
+#' n = 50; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' W = rbinom(n, 1, 0.5)
+#' Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
+#' c.forest = causal_forest(X, Y, W)
+#'
+#' # Predict using the forest.
+#' X.test = matrix(0, 101, p)
+#' X.test[,1] = seq(-2, 2, length.out = 101)
+#' c.pred = predict(c.forest, X.test)
+#'
+#' # Predict on out-of-bag training samples.
+#' c.pred = predict(c.forest)
+#'
+#' # Predict with confidence intervals; growing more trees is now recommended.
+#' c.forest = causal_forest(X, Y, W, num.trees = 4000)
+#' c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+#'
 #' @export
 causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2*ncol(X)/3), 
                           num.trees = 2000, num.threads = NULL, min.node.size = NULL,
                           honesty = TRUE, ci.group.size = 2, precompute.nuisance = TRUE,
-                          alpha = 0.05, seed = NULL) {
+                          alpha = 0.05, lambda = 0.0, downweight.penalty = FALSE, seed = NULL) {
     
     validate_X(X)
     if(length(Y) != nrow(X)) { stop("Y has incorrect length.") }
@@ -50,7 +73,6 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2*ncol(
     sample.fraction <- validate_sample_fraction(sample.fraction)
     seed <- validate_seed(seed)
     
-    sparse.data <- as.matrix(0)
     no.split.variables <- numeric(0)
     sample.with.replacement <- FALSE
     verbose <- FALSE
@@ -68,12 +90,15 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2*ncol(
         
         forest.Y <- regression_forest(X, Y, sample.fraction = sample.fraction, mtry = mtry, 
                                       num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha)
+                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, lambda = lambda,
+                                      downweight.penalty = downweight.penalty)
         Y.hat <- predict(forest.Y)$predictions
         
         forest.W <- regression_forest(X, W, sample.fraction = sample.fraction, mtry = mtry, 
                                       num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha)
+                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, lambda = lambda,
+                                      downweight.penalty = downweight.penalty)
+
         W.hat <- predict(forest.W)$predictions
         
         input.data <- as.matrix(cbind(X, Y - Y.hat, W - W.hat))
@@ -86,10 +111,10 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2*ncol(
     treatment.index <- ncol(X) + 2
     instrument.index <- treatment.index
     
-    forest <- instrumental_train(input.data, outcome.index, treatment.index,
-        instrument.index, sparse.data, variable.names, mtry, num.trees, verbose,
-        num.threads, min.node.size, sample.with.replacement, keep.inbag, sample.fraction,
-        no.split.variables, seed, honesty, ci.group.size, split.regularization, alpha)
+    forest <- instrumental_train(input.data, outcome.index, treatment.index, instrument.index,
+        variable.names, mtry, num.trees, verbose, num.threads, min.node.size,
+        sample.with.replacement, keep.inbag, sample.fraction, no.split.variables, seed, honesty,
+        ci.group.size, split.regularization, alpha, lambda, downweight.penalty)
     
     forest[["ci.group.size"]] <- ci.group.size
     forest[["original.data"]] <- input.data
@@ -119,6 +144,27 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2*ncol(
 #' @param ... Additional arguments (currently ignored).
 #'
 #' @return Vector of predictions, along with (optional) variance estimates.
+#'
+#' @examples
+#' # Train a causal forest.
+#' n = 100; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' W = rbinom(n, 1, 0.5)
+#' Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
+#' c.forest = causal_forest(X, Y, W)
+#'
+#' # Predict using the forest.
+#' X.test = matrix(0, 101, p)
+#' X.test[,1] = seq(-2, 2, length.out = 101)
+#' c.pred = predict(c.forest, X.test)
+#'
+#' # Predict on out-of-bag training samples.
+#' c.pred = predict(c.forest)
+#'
+#' # Predict with confidence intervals; growing more trees is now recommended.
+#' c.forest = causal_forest(X, Y, W, num.trees = 500)
+#' c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+#'
 #' @export
 predict.causal_forest <- function(object, newdata = NULL, num.threads = NULL, estimate.variance = FALSE, ...) {
     predict.instrumental_forest(object, newdata, num.threads, estimate.variance)

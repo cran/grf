@@ -16,17 +16,40 @@
 #'                    automatically selects an appropriate amount.
 #' @param min.node.size Minimum number of observations in each tree leaf.
 #' @param honesty Should honest splitting (i.e., sub-sample splitting) be used?
-#' @param ci.group.size The forst will grow ci.group.size trees on each subsample.
+#' @param ci.group.size The forest will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2.
 #' @param alpha Maximum imbalance of a split.
+#' @param lambda A tuning parameter to control the amount of split regularization (experimental).
+#' @param downweight.penalty Whether or not the regularization penalty should be downweighted (experimental).
 #' @param seed The seed of the c++ random number generator.
 #'
 #' @return A trained regression forest object.
+#'
+#' @examples
+#' # Train a standard regression forest.
+#' n = 50; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' Y = X[,1] * rnorm(n)
+#' r.forest = regression_forest(X, Y)
+#'
+#' # Predict using the forest.
+#' X.test = matrix(0, 101, p)
+#' X.test[,1] = seq(-2, 2, length.out = 101)
+#' r.pred = predict(r.forest, X.test)
+#'
+#' # Predict on out-of-bag training samples.
+#' r.pred = predict(r.forest)
+#'
+#' # Predict with confidence intervals; growing more trees is now recommended.
+#' r.forest = regression_forest(X, Y, num.trees = 100)
+#' r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+#'
 #' @export
 regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol(X)/3), 
                               num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-                              honesty = TRUE, ci.group.size = 2, alpha = 0.05, seed = NULL) {
+                              honesty = TRUE, ci.group.size = 2, alpha = 0.05, lambda = 0.0,
+                              downweight.penalty = FALSE, seed = NULL) {
     
     validate_X(X)
     if(length(Y) != nrow(X)) { stop("Y has incorrect length.") }
@@ -37,7 +60,6 @@ regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol
     sample.fraction <- validate_sample_fraction(sample.fraction)
     seed <- validate_seed(seed)
     
-    sparse.data <- as.matrix(0)
     no.split.variables <- numeric(0)
     sample.with.replacement <- FALSE
     verbose <- FALSE
@@ -47,9 +69,9 @@ regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol
     variable.names <- c(colnames(X), "outcome")
     outcome.index <- ncol(input.data)
     
-    forest <- regression_train(input.data, outcome.index, sparse.data,
-        variable.names, mtry, num.trees, verbose, num.threads, min.node.size, sample.with.replacement,
-        keep.inbag, sample.fraction, no.split.variables, seed, honesty, ci.group.size, alpha)
+    forest <- regression_train(input.data, outcome.index, variable.names, mtry, num.trees,
+        verbose, num.threads, min.node.size, sample.with.replacement, keep.inbag, sample.fraction,
+        no.split.variables, seed, honesty, ci.group.size, alpha, lambda, downweight.penalty)
     
     forest[["ci.group.size"]] <- ci.group.size
     forest[["original.data"]] <- input.data
@@ -73,7 +95,27 @@ regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol
 #'                          (for confidence intervals).
 #' @param ... Additional arguments (currently ignored).
 #'
-#' @return Vector of predictions.
+#' @return A vector of predictions.
+#'
+#' @examples
+#' # Train a standard regression forest.
+#' n = 50; p = 10
+#' X = matrix(rnorm(n*p), n, p)
+#' Y = X[,1] * rnorm(n)
+#' r.forest = regression_forest(X, Y)
+#'
+#' # Predict using the forest.
+#' X.test = matrix(0, 101, p)
+#' X.test[,1] = seq(-2, 2, length.out = 101)
+#' r.pred = predict(r.forest, X.test)
+#'
+#' # Predict on out-of-bag training samples.
+#' r.pred = predict(r.forest)
+#'
+#' # Predict with confidence intervals; growing more trees is now recommended.
+#' r.forest = regression_forest(X, Y, num.trees = 100)
+#' r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+#'
 #' @export
 predict.regression_forest <- function(object, newdata = NULL,
                                       num.threads = NULL,
@@ -86,7 +128,6 @@ predict.regression_forest <- function(object, newdata = NULL,
         stop("Error: Invalid value for num.threads")
     }
     
-    sparse.data <- as.matrix(0)
     variable.names <- character(0)
     
     if (estimate.variance) {
@@ -99,11 +140,11 @@ predict.regression_forest <- function(object, newdata = NULL,
     
     if (!is.null(newdata)) {
         input.data <- as.matrix(cbind(newdata, NA))
-        regression_predict(forest.short, input.data, sparse.data, variable.names, 
+        regression_predict(forest.short, input.data, variable.names, 
                            num.threads, ci.group.size)
     } else {
         input.data <- object[["original.data"]]
-        regression_predict_oob(forest.short, input.data, sparse.data, variable.names, 
+        regression_predict_oob(forest.short, input.data, variable.names, 
                                num.threads, ci.group.size)
     }
 }

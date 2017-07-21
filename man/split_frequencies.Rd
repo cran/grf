@@ -11,6 +11,21 @@ split_frequencies(forest, max.depth = 4)
 
 \item{max.depth}{Maximum depth of splits to consider.}
 }
+\value{
+A matrix of split depth by feature index, where each value
+is the number of times the feature was split on at that depth.
+}
 \description{
 Get summaries of which features the forest split on
+}
+\examples{
+# Train a quantile forest.
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+Y = X[,1] * rnorm(n)
+q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+
+# Calculate the split frequencies for this forest.
+split_frequencies(q.forest)
+
 }

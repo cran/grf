@@ -23,8 +23,24 @@ automatically selects an appropriate amount.}
 \item{...}{Additional arguments (currently ignored).}
 }
 \value{
-Predictions for each test point and each desired quantile.
+Predictions at each test point for each desired quantile.
 }
 \description{
 Gets estimates of the conditional quantiles of Y given X using a trained forest.
+}
+\examples{
+# Train a quantile forest.
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+Y = X[,1] * rnorm(n)
+q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+
+# Predict on out-of-bag training samples.
+q.pred = predict(q.forest)
+
+# Predict using the forest.
+X.test = matrix(0, 101, p)
+X.test[,1] = seq(-2, 2, length.out = 101)
+q.pred = predict(q.forest, X.test)
+
 }

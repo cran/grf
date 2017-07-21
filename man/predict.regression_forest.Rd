@@ -24,8 +24,28 @@ automatically selects an appropriate amount.}
 \item{...}{Additional arguments (currently ignored).}
 }
 \value{
-Vector of predictions.
+A vector of predictions.
 }
 \description{
 Gets estimates of E[Y|X=x] using a trained regression forest.
+}
+\examples{
+# Train a standard regression forest.
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+Y = X[,1] * rnorm(n)
+r.forest = regression_forest(X, Y)
+
+# Predict using the forest.
+X.test = matrix(0, 101, p)
+X.test[,1] = seq(-2, 2, length.out = 101)
+r.pred = predict(r.forest, X.test)
+
+# Predict on out-of-bag training samples.
+r.pred = predict(r.forest)
+
+# Predict with confidence intervals; growing more trees is now recommended.
+r.forest = regression_forest(X, Y, num.trees = 100)
+r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+
 }

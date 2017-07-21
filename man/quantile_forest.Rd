@@ -49,3 +49,22 @@ A trained quantile forest object.
 Trains a regression forest that can be used to estimate
 quantiles of the conditional distribution of Y given X = x.
 }
+\examples{
+# Train a quantile forest.
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+Y = X[,1] * rnorm(n)
+q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+
+# Predict using the forest.
+X.test = matrix(0, 101, p)
+X.test[,1] = seq(-2, 2, length.out = 101)
+q.pred = predict(q.forest, X.test)
+
+# Train a quantile forest with regression splits, as in Meinshausen (2006).
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+Y = X[,1] * rnorm(n)
+meins.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9), regression.splitting = TRUE)
+
+}

@@ -6,7 +6,8 @@
 \usage{
 regression_forest(X, Y, sample.fraction = 0.5, mtry = ceiling(2 *
   ncol(X)/3), num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-  honesty = TRUE, ci.group.size = 2, alpha = 0.05, seed = NULL)
+  honesty = TRUE, ci.group.size = 2, alpha = 0.05, lambda = 0,
+  downweight.penalty = FALSE, seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
@@ -30,11 +31,15 @@ automatically selects an appropriate amount.}
 
 \item{honesty}{Should honest splitting (i.e., sub-sample splitting) be used?}
 
-\item{ci.group.size}{The forst will grow ci.group.size trees on each subsample.
+\item{ci.group.size}{The forest will grow ci.group.size trees on each subsample.
 In order to provide confidence intervals, ci.group.size must
 be at least 2.}
 
 \item{alpha}{Maximum imbalance of a split.}
+
+\item{lambda}{A tuning parameter to control the amount of split regularization (experimental).}
+
+\item{downweight.penalty}{Whether or not the regularization penalty should be downweighted (experimental).}
 
 \item{seed}{The seed of the c++ random number generator.}
 }
@@ -44,4 +49,24 @@ A trained regression forest object.
 \description{
 Trains a regression forest that can be used to estimate
 the conditional mean function mu(x) = E[Y | X = x]
+}
+\examples{
+# Train a standard regression forest.
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+Y = X[,1] * rnorm(n)
+r.forest = regression_forest(X, Y)
+
+# Predict using the forest.
+X.test = matrix(0, 101, p)
+X.test[,1] = seq(-2, 2, length.out = 101)
+r.pred = predict(r.forest, X.test)
+
+# Predict on out-of-bag training samples.
+r.pred = predict(r.forest)
+
+# Predict with confidence intervals; growing more trees is now recommended.
+r.forest = regression_forest(X, Y, num.trees = 100)
+r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+
 }

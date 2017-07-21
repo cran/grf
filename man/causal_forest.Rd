@@ -7,7 +7,7 @@
 causal_forest(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2 * ncol(X)/3),
   num.trees = 2000, num.threads = NULL, min.node.size = NULL,
   honesty = TRUE, ci.group.size = 2, precompute.nuisance = TRUE,
-  alpha = 0.05, seed = NULL)
+  alpha = 0.05, lambda = 0, downweight.penalty = FALSE, seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the causal regression.}
@@ -44,6 +44,10 @@ recommended, computational resources permitting.}
 
 \item{alpha}{Maximum imbalance of a split.}
 
+\item{lambda}{A tuning parameter to control the amount of split regularization (experimental).}
+
+\item{downweight.penalty}{Whether or not the regularization penalty should be downweighted (experimental).}
+
 \item{seed}{The seed of the c++ random number generator.}
 }
 \value{
@@ -58,4 +62,25 @@ Y(1) are potential outcomes corresponding to the two possible
 treatment states. When W is continuous, we effectively estimate
 an average partical effect Cov[Y, W | X = x] / Var[W | X = x],
 and interpret it as a treatment effect given unconfoundedness.
+}
+\examples{
+# Train a causal forest.
+n = 50; p = 10
+X = matrix(rnorm(n*p), n, p)
+W = rbinom(n, 1, 0.5)
+Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
+c.forest = causal_forest(X, Y, W)
+
+# Predict using the forest.
+X.test = matrix(0, 101, p)
+X.test[,1] = seq(-2, 2, length.out = 101)
+c.pred = predict(c.forest, X.test)
+
+# Predict on out-of-bag training samples.
+c.pred = predict(c.forest)
+
+# Predict with confidence intervals; growing more trees is now recommended.
+c.forest = causal_forest(X, Y, W, num.trees = 4000)
+c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+
 }
