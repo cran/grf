@@ -4,7 +4,7 @@
 \alias{causal_forest}
 \title{Causal forest}
 \usage{
-causal_forest(X, Y, W, sample.fraction = 0.5, mtry = ceiling(2 * ncol(X)/3),
+causal_forest(X, Y, W, sample.fraction = 0.5, mtry = NULL,
   num.trees = 2000, num.threads = NULL, min.node.size = NULL,
   honesty = TRUE, ci.group.size = 2, precompute.nuisance = TRUE,
   alpha = 0.05, lambda = 0, downweight.penalty = FALSE, seed = NULL)

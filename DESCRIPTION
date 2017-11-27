@@ -1,6 +1,6 @@
 Package: grf
 Title: Generalized Random Forests (Beta)
-Version: 0.9.3
+Version: 0.9.4
 Author: Julie Tibshirani [aut, cre],
     Susan Athey [aut],
     Stefan Wager [aut],
@@ -22,6 +22,6 @@ Suggests: sandwich, testthat
 SystemRequirements: GNU make
 URL: https://github.com/swager/grf
 NeedsCompilation: yes
-Packaged: 2017-07-21 07:18:43 UTC; jtibshirani
+Packaged: 2017-11-26 23:30:44 UTC; jtibshirani
 Repository: CRAN
-Date/Publication: 2017-07-21 08:44:20 UTC
+Date/Publication: 2017-11-27 08:49:29 UTC
