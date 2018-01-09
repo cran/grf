@@ -29,11 +29,12 @@ getting accurate predictions.}
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
 
-\item{min.node.size}{Minimum number of observations in each tree leaf.}
+\item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
+with size smaller than min.node.size can occur, as in the original randomForest package.}
 
-\item{honesty}{Should honest splitting (i.e., sub-sample splitting) be used?}
+\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
 
-\item{ci.group.size}{The forst will grow ci.group.size trees on each subsample.
+\item{ci.group.size}{The forest will grow ci.group.size trees on each subsample.
 In order to provide confidence intervals, ci.group.size must
 be at least 2.}
 
@@ -64,6 +65,7 @@ an average partical effect Cov[Y, W | X = x] / Var[W | X = x],
 and interpret it as a treatment effect given unconfoundedness.
 }
 \examples{
+\dontrun{
 # Train a causal forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -82,5 +84,6 @@ c.pred = predict(c.forest)
 # Predict with confidence intervals; growing more trees is now recommended.
 c.forest = causal_forest(X, Y, W, num.trees = 4000)
 c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+}
 
 }

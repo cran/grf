@@ -15,7 +15,7 @@
 #'               augmented inverse-propensity weighting (AIPW), or
 #'               targeted maximum likelihood estimation (TMLE).
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a causal forest.
 #' n = 50; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -34,8 +34,9 @@
 #' # We don't expect much difference between the CATE and the CATT in this example,
 #' # since treatment assignment was randomized.
 #' estimate_average_effect(c.forest, target.sample = "treated")
+#' }
 #'
-#' @return Vector of predictions, along with (optional) variance estimates.
+#' @return An estimate of the average effect, along with standard error.
 #' @export
 estimate_average_effect = function(forest,
                                    target.sample=c("all", "treated", "control"),

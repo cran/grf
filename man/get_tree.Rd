@@ -18,6 +18,7 @@ A GRF tree object.
 Retrieve a single tree from a trained forest object.
 }
 \examples{
+\dontrun{
 # Train a quantile forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -27,5 +28,6 @@ q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
 # Examine a particular tree.
 q.tree = get_tree(q.forest, 3)
 q.tree$nodes
+}
 
 }

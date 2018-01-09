@@ -30,6 +30,7 @@ A vector of predictions.
 Gets estimates of E[Y|X=x] using a trained regression forest.
 }
 \examples{
+\dontrun{
 # Train a standard regression forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -47,5 +48,6 @@ r.pred = predict(r.forest)
 # Predict with confidence intervals; growing more trees is now recommended.
 r.forest = regression_forest(X, Y, num.trees = 100)
 r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+}
 
 }

@@ -13,16 +13,16 @@
 #'                  getting accurate predictions.
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
-#' @param min.node.size Minimum number of observations in each tree leaf.
-#' @param keep.inbag Currently not used.
-#' @param honesty Should honest splitting (i.e., sub-sample splitting) be used?   
+#' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
+#'                      with size smaller than min.node.size can occur, as in the original randomForest package.
+#' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
 #' @param alpha Maximum imbalance of a split.   
-#' @param seed The seed of the c++ random number generator.
+#' @param seed The seed for the C++ random number generator.
 #' @param ... Additional arguments (currently ignored).
 #'
 #' @return A trained regression forest object.
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a custom forest.
 #' n = 50; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -33,10 +33,11 @@
 #' X.test = matrix(0, 101, p)
 #' X.test[,1] = seq(-2, 2, length.out = 101)
 #' c.pred = predict(c.forest, X.test)
+#' }
 #'
 #' @export
 custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL, 
-    num.trees = 2000, num.threads = NULL, min.node.size = NULL, keep.inbag = FALSE, 
+    num.trees = 2000, num.threads = NULL, min.node.size = NULL,
     honesty = TRUE, alpha = 0.05, seed = NULL) {
 
     validate_X(X)
@@ -53,17 +54,17 @@ custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL,
     verbose <- FALSE
     keep.inbag <- FALSE
     
-    input.data <- as.matrix(cbind(X, Y))
+    data <- create_data_matrices(X, Y)
     variable.names <- c(colnames(X), "outcome")
     outcome.index <- ncol(X) + 1
     no.split.variables <- numeric(0)
     ci.group.size <- 1
     
-    forest <- custom_train(input.data, outcome.index,
+    forest <- custom_train(data$default, data$sparse, outcome.index,
         variable.names, mtry, num.trees, verbose, num.threads, min.node.size, sample.with.replacement,
         keep.inbag, sample.fraction, no.split.variables, seed, honesty, ci.group.size, alpha)
     
-    forest[["original.data"]] <- input.data
+    forest[["X.orig"]] <- X
     class(forest) <- c("custom_forest", "grf")
     forest
 }
@@ -81,7 +82,7 @@ custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL,
 #'
 #' @return Vector of predictions.
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a custom forest.
 #' n = 50; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -92,6 +93,7 @@ custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL,
 #' X.test = matrix(0, 101, p)
 #' X.test[,1] = seq(-2, 2, length.out = 101)
 #' c.pred = predict(c.forest, X.test)
+#' }
 #'
 #' @export
 predict.custom_forest <- function(object, newdata = NULL, num.threads = NULL, ...) {
@@ -104,15 +106,15 @@ predict.custom_forest <- function(object, newdata = NULL, num.threads = NULL, ..
     
     variable.names <- character(0)
     
-    forest.short <- object[-which(names(object) == "original.data")]
+    forest.short <- object[-which(names(object) == "X.orig")]
     
     if (!is.null(newdata)) {
-        input.data <- as.matrix(cbind(newdata, NA))
-        custom_predict(forest.short, input.data, variable.names, 
-            num.threads)
+        data <- create_data_matrices(newdata, NA)
+        custom_predict(forest.short, data$default, data$sparse,
+                       variable.names, num.threads)
     } else {
-        input.data <- object[["original.data"]]
-        custom_predict_oob(forest.short, input.data, variable.names, 
-            num.threads)
+        data <- create_data_matrices(object[["X.orig"]], NA)
+        custom_predict_oob(forest.short, data$default, data$sparse,
+                           variable.names, num.threads)
     }
 }

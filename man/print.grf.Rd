@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{The tree to print.}
 
-\item{decay.exponent}{Controls the relative importance of splits.}
+\item{decay.exponent}{A tuning parameter that controls the importance of split depth.}
 
 \item{max.depth}{The maximum depth of splits to consider.}
 

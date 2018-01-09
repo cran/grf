@@ -17,7 +17,7 @@ augmented inverse-propensity weighting (AIPW), or
 targeted maximum likelihood estimation (TMLE).}
 }
 \value{
-Vector of predictions, along with (optional) variance estimates.
+An estimate of the average effect, along with standard error.
 }
 \description{
 Gets estimates of one of the following
@@ -31,6 +31,7 @@ The (conditional) average treatment effect on the controls (target.sample = cont
   sum_{Wi = 0} E[Y(1) - Y(0) | X = Xi] / |{i : Wi = 0}|
 }
 \examples{
+\dontrun{
 # Train a causal forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -49,5 +50,6 @@ estimate_average_effect(c.forest, target.sample = "all")
 # We don't expect much difference between the CATE and the CATT in this example,
 # since treatment assignment was randomized.
 estimate_average_effect(c.forest, target.sample = "treated")
+}
 
 }

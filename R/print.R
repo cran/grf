@@ -1,20 +1,16 @@
 #' Print a GRF forest object.
 #' @param x The tree to print.
-#' @param decay.exponent Controls the relative importance of splits.
+#' @param decay.exponent A tuning parameter that controls the importance of split depth.
 #' @param max.depth The maximum depth of splits to consider.
 #' @param ... Additional arguments (currently ignored).
 #' @export
 print.grf <- function(x, decay.exponent=2, max.depth=4, ...) {
-    split.freq = split_frequencies(x, max.depth)
-    split.freq = split.freq / pmax(1, rowSums(split.freq))
-
-    weight = (1:nrow(split.freq))^(-decay.exponent)
-    var.importance = t(split.freq) %*% weight / sum(weight)
+    var.importance = variable_importance(x, decay.exponent, max.depth)
     var.importance = c(round(var.importance, 3))
     names(var.importance) = 1:length(var.importance)
 
     main.class = class(x)[1]
-    num.samples= nrow(x$original.data)
+    num.samples= nrow(x$X.orig)
 
     cat("GRF forest object of type", main.class, "\n")
     cat("Number of trees: ", x$num.trees, "\n")
@@ -55,7 +51,7 @@ print.grf_tree <- function(x, ...) {
             output = paste(output, "* num_samples:", length(node$samples))
         } else {
             split.var = node$split_variable
-            split.var.name = if (x$columns[split.var] != "") x$columns[split.var] else paste("X", split.var, sep=".")
+            split.var.name = x$columns[split.var]
             output = paste(output, "split_variable:", split.var.name, " split_value:", signif(node$split_value))
 
             left_child = nodes[node$left_child]

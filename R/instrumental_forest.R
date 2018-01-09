@@ -20,8 +20,9 @@
 #'                  getting accurate predictions.
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
-#' @param min.node.size Minimum number of observations in each tree leaf.
-#' @param honesty Should honest splitting (i.e., sub-sample splitting) be used?
+#' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
+#'                      with size smaller than min.node.size can occur, as in the original randomForest package.
+#' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
 #' @param ci.group.size The forst will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2.
@@ -36,11 +37,11 @@
 #' @param alpha Maximum imbalance of a split.
 #' @param lambda A tuning parameter to control the amount of split regularization (experimental).
 #' @param downweight.penalty Whether or not the regularization penalty should be downweighted (experimental).
-#' @param seed The seed of the c++ random number generator.
+#' @param seed The seed for the C++ random number generator.
 #'
 #' @return A trained instrumental forest object.
 #' @export
-instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = ceiling(2*ncol(X)/3), 
+instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
                                 num.trees = 2000, num.threads = NULL, min.node.size = NULL, honesty = TRUE,
                                 ci.group.size = 2, precompute.nuisance = TRUE, split.regularization = 0,
                                 alpha = 0.05, lambda = 0.0, downweight.penalty = FALSE, seed = NULL) {
@@ -66,7 +67,7 @@ instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = ceilin
     }
     
     if (!precompute.nuisance) {
-        input.data <- as.matrix(cbind(X, Y, W, Z))
+        data <- create_data_matrices(X, Y, W, Z)
     } else {
         forest.Y <- regression_forest(X, Y, sample.fraction = sample.fraction, mtry = mtry, 
                                       num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
@@ -86,7 +87,7 @@ instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = ceilin
                                       downweight.penalty = downweight.penalty)
         Z.hat = predict(forest.Z)$predictions
         
-        input.data <- as.matrix(cbind(X, Y - Y.hat, W - W.hat, Z - Z.hat))
+        data <- create_data_matrices(X, Y - Y.hat, W - W.hat, Z - Z.hat)
     }
     
     variable.names <- c(colnames(X), "outcome", "treatment", "instrument")
@@ -94,14 +95,13 @@ instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = ceilin
     treatment.index <- ncol(X) + 2
     instrument.index <- ncol(X) + 3
     
-    forest <- instrumental_train(input.data, outcome.index, treatment.index, instrument.index,
+    forest <- instrumental_train(data$default, data$sparse, outcome.index, treatment.index, instrument.index,
         variable.names, mtry, num.trees, verbose, num.threads, min.node.size,
         sample.with.replacement, keep.inbag, sample.fraction, no.split.variables, seed, honesty,
         ci.group.size, split.regularization, alpha, lambda, downweight.penalty)
     
     forest[["ci.group.size"]] <- ci.group.size
-    forest[["original.data"]] <- input.data
-    forest[["feature.indices"]] <- 1:ncol(X)
+    forest[["X.orig"]] <- X
     class(forest) <- c("instrumental_forest", "grf")
     forest
 }
@@ -137,15 +137,15 @@ predict.instrumental_forest <- function(object, newdata = NULL,
         ci.group.size = 1
     }
     
-    forest.short <- object[-which(names(object) == "original.data")]
+    forest.short <- object[-which(names(object) == "X.orig")]
     
     if (!is.null(newdata)) {
-        input.data <- as.matrix(cbind(newdata, NA))
-        instrumental_predict(forest.short, input.data, variable.names, num.threads, 
-                             ci.group.size)
+        data <- create_data_matrices(newdata, NA, NA, NA)
+        instrumental_predict(forest.short, data$default, data$sparse,
+                             variable.names, num.threads, ci.group.size)
     } else {
-        input.data <- object[["original.data"]]
-        instrumental_predict_oob(forest.short, input.data, variable.names, 
-                                 num.threads, ci.group.size)
+        data <- create_data_matrices(object[["X.orig"]], NA, NA, NA)
+        instrumental_predict_oob(forest.short, data$default, data$sparse,
+                                 variable.names, num.threads, ci.group.size)
     }
 }

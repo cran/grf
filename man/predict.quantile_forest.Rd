@@ -29,6 +29,7 @@ Predictions at each test point for each desired quantile.
 Gets estimates of the conditional quantiles of Y given X using a trained forest.
 }
 \examples{
+\dontrun{
 # Train a quantile forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -42,5 +43,6 @@ q.pred = predict(q.forest)
 X.test = matrix(0, 101, p)
 X.test[,1] = seq(-2, 2, length.out = 101)
 q.pred = predict(q.forest, X.test)
+}
 
 }

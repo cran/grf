@@ -14,19 +14,20 @@
 #'                  getting accurate predictions.
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
-#' @param min.node.size Minimum number of observations in each tree leaf.
-#' @param honesty Should honest splitting (i.e., sub-sample splitting) be used?
+#' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
+#'                      with size smaller than min.node.size can occur, as in the original randomForest package.
+#' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
 #' @param ci.group.size The forest will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2.
 #' @param alpha Maximum imbalance of a split.
 #' @param lambda A tuning parameter to control the amount of split regularization (experimental).
 #' @param downweight.penalty Whether or not the regularization penalty should be downweighted (experimental).
-#' @param seed The seed of the c++ random number generator.
+#' @param seed The seed for the C++ random number generator.
 #'
 #' @return A trained regression forest object.
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a standard regression forest.
 #' n = 50; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -44,9 +45,10 @@
 #' # Predict with confidence intervals; growing more trees is now recommended.
 #' r.forest = regression_forest(X, Y, num.trees = 100)
 #' r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+#' }
 #'
 #' @export
-regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol(X)/3), 
+regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL, 
                               num.trees = 2000, num.threads = NULL, min.node.size = NULL,
                               honesty = TRUE, ci.group.size = 2, alpha = 0.05, lambda = 0.0,
                               downweight.penalty = FALSE, seed = NULL) {
@@ -64,18 +66,17 @@ regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol
     sample.with.replacement <- FALSE
     verbose <- FALSE
     keep.inbag <- FALSE
-    
-    input.data <- as.matrix(cbind(X, Y))
+
+    data <- create_data_matrices(X, Y)
     variable.names <- c(colnames(X), "outcome")
-    outcome.index <- ncol(input.data)
+    outcome.index <- ncol(X) + 1
     
-    forest <- regression_train(input.data, outcome.index, variable.names, mtry, num.trees,
+    forest <- regression_train(data$default, data$sparse, outcome.index, variable.names, mtry, num.trees,
         verbose, num.threads, min.node.size, sample.with.replacement, keep.inbag, sample.fraction,
         no.split.variables, seed, honesty, ci.group.size, alpha, lambda, downweight.penalty)
     
     forest[["ci.group.size"]] <- ci.group.size
-    forest[["original.data"]] <- input.data
-    forest[["feature.indices"]] <- 1:ncol(X)
+    forest[["X.orig"]] <- X
     class(forest) <- c("regression_forest", "grf")
     forest
 }
@@ -97,7 +98,7 @@ regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol
 #'
 #' @return A vector of predictions.
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a standard regression forest.
 #' n = 50; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -115,6 +116,7 @@ regression_forest <- function(X, Y, sample.fraction = 0.5, mtry = ceiling(2*ncol
 #' # Predict with confidence intervals; growing more trees is now recommended.
 #' r.forest = regression_forest(X, Y, num.trees = 100)
 #' r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+#' }
 #'
 #' @export
 predict.regression_forest <- function(object, newdata = NULL,
@@ -130,15 +132,15 @@ predict.regression_forest <- function(object, newdata = NULL,
         ci.group.size = 1
     }
     
-    forest.short <- object[-which(names(object) == "original.data")]
+    forest.short <- object[-which(names(object) == "X.orig")]
     
     if (!is.null(newdata)) {
-        input.data <- as.matrix(cbind(newdata, NA))
-        regression_predict(forest.short, input.data, variable.names, 
-                           num.threads, ci.group.size)
+        data <- create_data_matrices(newdata, NA)
+        regression_predict(forest.short, data$default, data$sparse,
+                           variable.names, num.threads, ci.group.size)
     } else {
-        input.data <- object[["original.data"]]
-        regression_predict_oob(forest.short, input.data, variable.names, 
-                               num.threads, ci.group.size)
+        data <- create_data_matrices(object[["X.orig"]], NA)
+        regression_predict_oob(forest.short, data$default, data$sparse,
+                               variable.names, num.threads, ci.group.size)
     }
 }

@@ -1,4 +1,7 @@
 useDynLib(grf)
+
+importFrom("Matrix", "Matrix", "cBind")
+importFrom("methods", "new")
 importFrom("stats", "lm", "predict", "runif", "var")
 import(Rcpp)
 
@@ -18,3 +21,4 @@ export(instrumental_forest)
 export(quantile_forest)
 export(regression_forest)
 export(split_frequencies)
+export(variable_importance)

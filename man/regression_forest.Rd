@@ -4,8 +4,8 @@
 \alias{regression_forest}
 \title{Regression forest}
 \usage{
-regression_forest(X, Y, sample.fraction = 0.5, mtry = ceiling(2 *
-  ncol(X)/3), num.trees = 2000, num.threads = NULL, min.node.size = NULL,
+regression_forest(X, Y, sample.fraction = 0.5, mtry = NULL,
+  num.trees = 2000, num.threads = NULL, min.node.size = NULL,
   honesty = TRUE, ci.group.size = 2, alpha = 0.05, lambda = 0,
   downweight.penalty = FALSE, seed = NULL)
 }
@@ -27,9 +27,10 @@ getting accurate predictions.}
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
 
-\item{min.node.size}{Minimum number of observations in each tree leaf.}
+\item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
+with size smaller than min.node.size can occur, as in the original randomForest package.}
 
-\item{honesty}{Should honest splitting (i.e., sub-sample splitting) be used?}
+\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
 
 \item{ci.group.size}{The forest will grow ci.group.size trees on each subsample.
 In order to provide confidence intervals, ci.group.size must
@@ -41,7 +42,7 @@ be at least 2.}
 
 \item{downweight.penalty}{Whether or not the regularization penalty should be downweighted (experimental).}
 
-\item{seed}{The seed of the c++ random number generator.}
+\item{seed}{The seed for the C++ random number generator.}
 }
 \value{
 A trained regression forest object.
@@ -51,6 +52,7 @@ Trains a regression forest that can be used to estimate
 the conditional mean function mu(x) = E[Y | X = x]
 }
 \examples{
+\dontrun{
 # Train a standard regression forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -68,5 +70,6 @@ r.pred = predict(r.forest)
 # Predict with confidence intervals; growing more trees is now recommended.
 r.forest = regression_forest(X, Y, num.trees = 100)
 r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
+}
 
 }

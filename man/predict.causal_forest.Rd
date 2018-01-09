@@ -30,6 +30,7 @@ Vector of predictions, along with (optional) variance estimates.
 Gets estimates of tau(x) using a trained causal forest.
 }
 \examples{
+\dontrun{
 # Train a causal forest.
 n = 100; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -48,5 +49,6 @@ c.pred = predict(c.forest)
 # Predict with confidence intervals; growing more trees is now recommended.
 c.forest = causal_forest(X, Y, W, num.trees = 500)
 c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+}
 
 }

@@ -5,8 +5,8 @@
 \title{Custom forest}
 \usage{
 custom_forest(X, Y, sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
-  num.threads = NULL, min.node.size = NULL, keep.inbag = FALSE,
-  honesty = TRUE, alpha = 0.05, seed = NULL)
+  num.threads = NULL, min.node.size = NULL, honesty = TRUE,
+  alpha = 0.05, seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
@@ -26,15 +26,14 @@ getting accurate predictions.}
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
 
-\item{min.node.size}{Minimum number of observations in each tree leaf.}
+\item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
+with size smaller than min.node.size can occur, as in the original randomForest package.}
 
-\item{keep.inbag}{Currently not used.}
-
-\item{honesty}{Should honest splitting (i.e., sub-sample splitting) be used?}
+\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
 
 \item{alpha}{Maximum imbalance of a split.}
 
-\item{seed}{The seed of the c++ random number generator.}
+\item{seed}{The seed for the C++ random number generator.}
 
 \item{...}{Additional arguments (currently ignored).}
 }
@@ -45,6 +44,7 @@ A trained regression forest object.
 Trains a custom forest model.
 }
 \examples{
+\dontrun{
 # Train a custom forest.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -55,5 +55,6 @@ c.forest = custom_forest(X, Y)
 X.test = matrix(0, 101, p)
 X.test[,1] = seq(-2, 2, length.out = 101)
 c.pred = predict(c.forest, X.test)
+}
 
 }

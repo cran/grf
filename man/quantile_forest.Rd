@@ -5,8 +5,8 @@
 \title{Quantile forest}
 \usage{
 quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9),
-  regression.splitting = FALSE, sample.fraction = 0.5, mtry = ceiling(2 *
-  ncol(X)/3), num.trees = 2000, num.threads = NULL, min.node.size = NULL,
+  regression.splitting = FALSE, sample.fraction = 0.5, mtry = NULL,
+  num.trees = 2000, num.threads = NULL, min.node.size = NULL,
   seed = NULL, alpha = 0.05, honesty = TRUE)
 }
 \arguments{
@@ -34,13 +34,14 @@ getting accurate predictions.}
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
 
-\item{min.node.size}{Minimum number of observations in each tree leaf.}
+\item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
+with size smaller than min.node.size can occur, as in the original randomForest package.}
 
-\item{seed}{The seed of the c++ random number generator.}
+\item{seed}{The seed for the C++ random number generator.}
 
 \item{alpha}{Maximum imbalance of a split.}
 
-\item{honesty}{Should honest splitting (i.e., sub-sample splitting) be used?}
+\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
 }
 \value{
 A trained quantile forest object.
@@ -50,6 +51,7 @@ Trains a regression forest that can be used to estimate
 quantiles of the conditional distribution of Y given X = x.
 }
 \examples{
+\dontrun{
 # Generate data.
 n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
@@ -72,5 +74,6 @@ meins.forest = quantile_forest(X, Y, regression.splitting=TRUE)
 
 # Make predictions for the desired quantiles.
 q.hat = predict(meins.forest, X.test, quantiles=c(0.1, 0.5, 0.9))
+}
 
 }

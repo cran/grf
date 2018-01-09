@@ -21,9 +21,10 @@
 #'                  getting accurate predictions.
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
-#' @param min.node.size Minimum number of observations in each tree leaf.
-#' @param honesty Should honest splitting (i.e., sub-sample splitting) be used?
-#' @param ci.group.size The forst will grow ci.group.size trees on each subsample.
+#' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
+#'                      with size smaller than min.node.size can occur, as in the original randomForest package.
+#' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
+#' @param ci.group.size The forest will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2.
 #' @param precompute.nuisance Should we first run regression forests to estimate
@@ -37,7 +38,7 @@
 #'
 #' @return A trained causal forest object.
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a causal forest.
 #' n = 50; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -56,6 +57,7 @@
 #' # Predict with confidence intervals; growing more trees is now recommended.
 #' c.forest = causal_forest(X, Y, W, num.trees = 4000)
 #' c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+#' }
 #'
 #' @export
 causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = NULL, 
@@ -81,7 +83,7 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = NULL,
     split.regularization <- 0
     
     if (!precompute.nuisance) {
-        input.data <- as.matrix(cbind(X, Y, W))
+        data <- create_data_matrices(X, Y, W)
         Y.hat <- NULL
         W.hat <- NULL
     } else {
@@ -98,7 +100,7 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = NULL,
 
         W.hat <- predict(forest.W)$predictions
         
-        input.data <- as.matrix(cbind(X, Y - Y.hat, W - W.hat))
+        data <- create_data_matrices(X, Y - Y.hat, W - W.hat)
     }
 
     variable.names <- c(colnames(X), "outcome", "treatment")
@@ -106,14 +108,13 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = NULL,
     treatment.index <- ncol(X) + 2
     instrument.index <- treatment.index
     
-    forest <- instrumental_train(input.data, outcome.index, treatment.index, instrument.index,
+    forest <- instrumental_train(data$default, data$sparse, outcome.index, treatment.index, instrument.index,
         variable.names, mtry, num.trees, verbose, num.threads, min.node.size,
         sample.with.replacement, keep.inbag, sample.fraction, no.split.variables, seed, honesty,
         ci.group.size, split.regularization, alpha, lambda, downweight.penalty)
     
     forest[["ci.group.size"]] <- ci.group.size
-    forest[["original.data"]] <- input.data
-    forest[["feature.indices"]] <- 1:ncol(X)
+    forest[["X.orig"]] <- X
     forest[["Y.orig"]] <- Y
     forest[["W.orig"]] <- W
     forest[["Y.hat"]] <- Y.hat
@@ -140,7 +141,7 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = NULL,
 #'
 #' @return Vector of predictions, along with (optional) variance estimates.
 #'
-#' @examples
+#' @examples \dontrun{
 #' # Train a causal forest.
 #' n = 100; p = 10
 #' X = matrix(rnorm(n*p), n, p)
@@ -159,6 +160,7 @@ causal_forest <- function(X, Y, W, sample.fraction = 0.5, mtry = NULL,
 #' # Predict with confidence intervals; growing more trees is now recommended.
 #' c.forest = causal_forest(X, Y, W, num.trees = 500)
 #' c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+#' }
 #'
 #' @export
 predict.causal_forest <- function(object, newdata = NULL, num.threads = NULL, estimate.variance = FALSE, ...) {
