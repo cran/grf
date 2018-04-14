@@ -31,21 +31,26 @@
 #'                            and then run an instrumental forest on the residuals?
 #'                            This approach is recommended, computational resources
 #'                            permitting.
-#' @param split.regularization Whether splits should be regularized towards a naive
-#'                             splitting criterion that ignores the instrument (and
-#'                             instead emulates a causal forest).
-#' @param alpha Maximum imbalance of a split.
-#' @param lambda A tuning parameter to control the amount of split regularization (experimental).
-#' @param downweight.penalty Whether or not the regularization penalty should be downweighted (experimental).
+#' @param reduced.form.weight Whether splits should be regularized towards a naive
+#'                            splitting criterion that ignores the instrument (and
+#'                            instead emulates a causal forest).
+#' @param alpha A tuning parameter that controls the maximum imbalance of a split.
+#' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized.
+#' @param stabilize.splits Whether or not the instrument should be taken into account when
+#'                         determining the imbalance of a split (experimental).
 #' @param seed The seed for the C++ random number generator.
+#' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
+#' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
+#'                            each cluster. Must be less than the size of the smallest cluster. If set to NULL
+#'                            software will set this value to the size of the smallest cluster.
 #'
 #' @return A trained instrumental forest object.
 #' @export
 instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
                                 num.trees = 2000, num.threads = NULL, min.node.size = NULL, honesty = TRUE,
-                                ci.group.size = 2, precompute.nuisance = TRUE, split.regularization = 0,
-                                alpha = 0.05, lambda = 0.0, downweight.penalty = FALSE, seed = NULL) {
-    
+                                ci.group.size = 2, precompute.nuisance = TRUE, reduced.form.weight = 0,
+                                alpha = 0.05, imbalance.penalty = 0.0, stabilize.splits = TRUE , seed = NULL,
+                                clusters = NULL, samples_per_cluster = NULL) {
     validate_X(X)
     if(length(Y) != nrow(X)) { stop("Y has incorrect length.") }
     if(length(W) != nrow(X)) { stop("W has incorrect length.") }
@@ -56,14 +61,11 @@ instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
     min.node.size <- validate_min_node_size(min.node.size)
     sample.fraction <- validate_sample_fraction(sample.fraction)
     seed <- validate_seed(seed)
+    clusters <- validate_clusters(clusters, X)
+    samples_per_cluster <- validate_samples_per_cluster(samples_per_cluster, clusters)
     
-    no.split.variables <- numeric(0)
-    sample.with.replacement <- FALSE
-    verbose <- FALSE
-    keep.inbag <- FALSE
-    
-    if (!is.numeric(split.regularization) | split.regularization < 0 | split.regularization > 1) {
-        stop("Error: Invalid value for split.regularization. Please give a value in [0,1].")
+    if (!is.numeric(reduced.form.weight) | reduced.form.weight < 0 | reduced.form.weight > 1) {
+        stop("Error: Invalid value for reduced.form.weight. Please give a value in [0,1].")
     }
     
     if (!precompute.nuisance) {
@@ -71,37 +73,40 @@ instrumental_forest <- function(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
     } else {
         forest.Y <- regression_forest(X, Y, sample.fraction = sample.fraction, mtry = mtry, 
                                       num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, lambda = lambda,
-                                      downweight.penalty = downweight.penalty)
+                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
+                                      clusters = clusters, samples_per_cluster = samples_per_cluster)
+
         Y.hat = predict(forest.Y)$predictions
         
         forest.W <- regression_forest(X, W, sample.fraction = sample.fraction, mtry = mtry, 
                                       num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, lambda = lambda,
-                                      downweight.penalty = downweight.penalty)
+                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
+                                      clusters = clusters, samples_per_cluster = samples_per_cluster)
+
         W.hat = predict(forest.W)$predictions
-        
+
         forest.Z <- regression_forest(X, Z, sample.fraction = sample.fraction, mtry = mtry, 
                                       num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, lambda = lambda,
-                                      downweight.penalty = downweight.penalty)
+                                      honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
+                                      clusters = clusters, samples_per_cluster = samples_per_cluster)
         Z.hat = predict(forest.Z)$predictions
         
         data <- create_data_matrices(X, Y - Y.hat, W - W.hat, Z - Z.hat)
     }
     
-    variable.names <- c(colnames(X), "outcome", "treatment", "instrument")
     outcome.index <- ncol(X) + 1
     treatment.index <- ncol(X) + 2
     instrument.index <- ncol(X) + 3
     
-    forest <- instrumental_train(data$default, data$sparse, outcome.index, treatment.index, instrument.index,
-        variable.names, mtry, num.trees, verbose, num.threads, min.node.size,
-        sample.with.replacement, keep.inbag, sample.fraction, no.split.variables, seed, honesty,
-        ci.group.size, split.regularization, alpha, lambda, downweight.penalty)
+    forest <- instrumental_train(data$default, data$sparse, outcome.index, treatment.index,
+        instrument.index, mtry, num.trees, num.threads, min.node.size, sample.fraction, seed, honesty,
+        ci.group.size, reduced.form.weight, alpha, imbalance.penalty, stabilize.splits,
+        clusters, samples_per_cluster)
     
     forest[["ci.group.size"]] <- ci.group.size
     forest[["X.orig"]] <- X
+    forest[["clusters"]] <- clusters
+    
     class(forest) <- c("instrumental_forest", "grf")
     forest
 }
@@ -127,10 +132,7 @@ predict.instrumental_forest <- function(object, newdata = NULL,
                                         num.threads = NULL, 
                                         estimate.variance = FALSE,
                                         ...) {
-    
     num.threads <- validate_num_threads(num.threads)    
-    variable.names <- character(0)
-    
     if (estimate.variance) {
         ci.group.size = object$ci.group.size
     } else {
@@ -140,12 +142,12 @@ predict.instrumental_forest <- function(object, newdata = NULL,
     forest.short <- object[-which(names(object) == "X.orig")]
     
     if (!is.null(newdata)) {
-        data <- create_data_matrices(newdata, NA, NA, NA)
+        data <- create_data_matrices(newdata)
         instrumental_predict(forest.short, data$default, data$sparse,
-                             variable.names, num.threads, ci.group.size)
+                             num.threads, ci.group.size)
     } else {
-        data <- create_data_matrices(object[["X.orig"]], NA, NA, NA)
+        data <- create_data_matrices(object[["X.orig"]])
         instrumental_predict_oob(forest.short, data$default, data$sparse,
-                                 variable.names, num.threads, ci.group.size)
+                                 num.threads, ci.group.size)
     }
 }

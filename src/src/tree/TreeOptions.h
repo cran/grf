@@ -29,31 +29,33 @@ class TreeOptions {
 public:
   TreeOptions(uint mtry,
               uint min_node_size,
-              const std::vector<double>& split_select_weights,
-              const std::vector<size_t>& split_select_vars,
-              const std::vector<size_t>& deterministic_vars,
-              const std::set<size_t>& no_split_variables,
-              bool honesty);
+              bool honesty,
+              double alpha,
+              double imbalance_penalty);
 
-  uint get_mtry();
-  uint get_min_node_size();
-  const std::vector<double>& get_split_select_weights();
-  const std::vector<size_t>& get_split_select_vars();
+  uint get_mtry() const;
+  uint get_min_node_size() const;
+  bool get_honesty() const;
 
-  const std::vector<size_t>& get_deterministic_vars();
-  const std::set<size_t>& get_no_split_variables();
+  /**
+   * The minimum fraction of samples that are allowed to be on either
+   * side of each tree split. Splits that are too uneven according to this
+   * parameter will not be considered.
+   */
+  double get_alpha() const;
 
-  bool get_honesty();
+  /**
+   * A tuning parameter that controls how harshly imbalanced splits are penalized.
+   */
+  double get_imbalance_penalty() const;
 
 private:
   uint mtry;
   uint min_node_size;
-  std::vector<double> split_select_weights;
-  std::vector<size_t> split_select_vars;
-  std::vector<size_t> deterministic_vars;
-  std::set<size_t> no_split_variables;
-
   bool honesty;
+
+  double alpha;
+  double imbalance_penalty;
 };
 
 #endif //GRF_TREEOPTIONS_H

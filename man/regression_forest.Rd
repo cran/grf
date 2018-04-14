@@ -6,8 +6,10 @@
 \usage{
 regression_forest(X, Y, sample.fraction = 0.5, mtry = NULL,
   num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-  honesty = TRUE, ci.group.size = 2, alpha = 0.05, lambda = 0,
-  downweight.penalty = FALSE, seed = NULL)
+  honesty = TRUE, ci.group.size = 2, alpha = NULL,
+  imbalance.penalty = NULL, seed = NULL, clusters = NULL,
+  samples_per_cluster = NULL, tune.parameters = FALSE, num.fit.trees = 10,
+  num.fit.reps = 100, num.optimize.reps = 1000)
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
@@ -36,13 +38,27 @@ with size smaller than min.node.size can occur, as in the original randomForest 
 In order to provide confidence intervals, ci.group.size must
 be at least 2.}
 
-\item{alpha}{Maximum imbalance of a split.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
 
-\item{lambda}{A tuning parameter to control the amount of split regularization (experimental).}
-
-\item{downweight.penalty}{Whether or not the regularization penalty should be downweighted (experimental).}
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
 
 \item{seed}{The seed for the C++ random number generator.}
+
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+
+\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
+each cluster. Must be less than the size of the smallest cluster. If set to NULL
+software will set this value to the size of the smallest cluster.}
+
+\item{tune.parameters}{If true, NULL parameters are tuned by cross-validation; if false
+NULL parameters are set to defaults.}
+
+\item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model.}
+
+\item{num.fit.reps}{The number of forests used to fit the tuning model.}
+
+\item{num.optimize.reps}{The number of random parameter values considered when using the model
+to select the optimal parameters.}
 }
 \value{
 A trained regression forest object.

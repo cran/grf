@@ -7,7 +7,8 @@
 quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9),
   regression.splitting = FALSE, sample.fraction = 0.5, mtry = NULL,
   num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-  seed = NULL, alpha = 0.05, honesty = TRUE)
+  honesty = TRUE, alpha = 0.05, imbalance.penalty = 0, seed = NULL,
+  clusters = NULL, samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the quantile regression.}
@@ -37,11 +38,19 @@ automatically selects an appropriate amount.}
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
 with size smaller than min.node.size can occur, as in the original randomForest package.}
 
+\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
+
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
+
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
+
 \item{seed}{The seed for the C++ random number generator.}
 
-\item{alpha}{Maximum imbalance of a split.}
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
-\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
+\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
+each cluster. Must be less than the size of the smallest cluster. If set to NULL
+software will set this value to the size of the smallest cluster.}
 }
 \value{
 A trained quantile forest object.

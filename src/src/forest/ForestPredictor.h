@@ -21,7 +21,9 @@
 #include "relabeling/RelabelingStrategy.h"
 #include "splitting/SplittingRule.h"
 #include "prediction/Prediction.h"
+#include "prediction/collector/TreeTraverser.h"
 #include "prediction/collector/PredictionCollector.h"
+#include "prediction/collector/SampleWeightComputer.h"
 #include "prediction/OptimizedPredictionStrategy.h"
 #include "prediction/DefaultPredictionStrategy.h"
 
@@ -42,32 +44,16 @@ public:
                   uint ci_group_size,
                   std::shared_ptr<OptimizedPredictionStrategy> strategy);
 
-  std::vector<Prediction> predict(const Forest& forest, Data* prediction_data);
-  std::vector<Prediction> predict_oob(const Forest& forest, Data* original_data);
+  std::vector<Prediction> predict(const Forest& forest, Data* prediction_data) const;
+  std::vector<Prediction> predict_oob(const Forest& forest, Data* original_data) const;
 
 private:
   std::vector<Prediction> predict(const Forest& forest,
-                                  Data* prediction_data,
-                                  bool oob_prediction);
-
-  std::vector<std::vector<bool>> get_trees_by_sample(const Forest &forest,
-                                                     Data *data);
-
-  std::vector<std::vector<size_t>> find_leaf_nodes(
-      const Forest &forest,
-      Data *data,
-      bool oob_prediction);
-
-  std::vector<std::vector<size_t>> find_batch(
-      size_t start,
-      size_t num_trees,
-      const Forest &forest,
-      Data *prediction_data,
-      bool oob_prediction);
-
+                                  Data* data,
+                                  bool oob_prediction) const;
 
 private:
-  uint num_threads;
+  TreeTraverser tree_traverser;
   std::shared_ptr<PredictionCollector> prediction_collector;
 };
 

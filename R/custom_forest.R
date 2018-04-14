@@ -16,9 +16,13 @@
 #' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
 #'                      with size smaller than min.node.size can occur, as in the original randomForest package.
 #' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
-#' @param alpha Maximum imbalance of a split.   
+#' @param alpha A tuning parameter that controls the maximum imbalance of a split.
+#' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized.
 #' @param seed The seed for the C++ random number generator.
-#' @param ... Additional arguments (currently ignored).
+#' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
+#' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
+#'                            each cluster. Must be less than the size of the smallest cluster. If set to NULL
+#'                            software will set this value to the size of the smallest cluster.
 #'
 #' @return A trained regression forest object.
 #'
@@ -38,7 +42,8 @@
 #' @export
 custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL, 
     num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-    honesty = TRUE, alpha = 0.05, seed = NULL) {
+    honesty = TRUE, alpha = 0.05, imbalance.penalty = 0.0, seed = NULL,
+    clusters = NULL, samples_per_cluster = NULL) {
 
     validate_X(X)
     if(length(Y) != nrow(X)) { stop("Y has incorrect length.") }
@@ -48,21 +53,18 @@ custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL,
     min.node.size <- validate_min_node_size(min.node.size)
     sample.fraction <- validate_sample_fraction(sample.fraction)
     seed <- validate_seed(seed)
+    clusters <- validate_clusters(clusters, X)
+    samples_per_cluster <- validate_samples_per_cluster(samples_per_cluster, clusters)
     
     no.split.variables <- numeric(0)
-    sample.with.replacement <- FALSE
-    verbose <- FALSE
-    keep.inbag <- FALSE
     
     data <- create_data_matrices(X, Y)
-    variable.names <- c(colnames(X), "outcome")
     outcome.index <- ncol(X) + 1
-    no.split.variables <- numeric(0)
     ci.group.size <- 1
     
-    forest <- custom_train(data$default, data$sparse, outcome.index,
-        variable.names, mtry, num.trees, verbose, num.threads, min.node.size, sample.with.replacement,
-        keep.inbag, sample.fraction, no.split.variables, seed, honesty, ci.group.size, alpha)
+    forest <- custom_train(data$default, data$sparse, outcome.index, mtry,
+        num.trees, num.threads, min.node.size, sample.fraction, seed, honesty,
+        ci.group.size, alpha, imbalance.penalty, clusters, samples_per_cluster)
     
     forest[["X.orig"]] <- X
     class(forest) <- c("custom_forest", "grf")
@@ -103,18 +105,14 @@ predict.custom_forest <- function(object, newdata = NULL, num.threads = NULL, ..
     } else if (!is.numeric(num.threads) | num.threads < 0) {
         stop("Error: Invalid value for num.threads")
     }
-    
-    variable.names <- character(0)
-    
+        
     forest.short <- object[-which(names(object) == "X.orig")]
     
     if (!is.null(newdata)) {
-        data <- create_data_matrices(newdata, NA)
-        custom_predict(forest.short, data$default, data$sparse,
-                       variable.names, num.threads)
+        data <- create_data_matrices(newdata)
+        custom_predict(forest.short, data$default, data$sparse, num.threads)
     } else {
-        data <- create_data_matrices(object[["X.orig"]], NA)
-        custom_predict_oob(forest.short, data$default, data$sparse,
-                           variable.names, num.threads)
+        data <- create_data_matrices(object[["X.orig"]])
+        custom_predict_oob(forest.short, data$default, data$sparse, num.threads)
     }
 }

@@ -1,13 +1,20 @@
 #' Estimate average treatment effects using a causal forest
 #' 
-#' Gets estimates of one of the following
-#' 
-#' The (conditional) average treatment effect (target.sample = all):
+#' Gets estimates of one of the following.
+#' \itemize{
+#'   \item The (conditional) average treatment effect (target.sample = all):
 #'   sum_{i = 1}^n E[Y(1) - Y(0) | X = Xi] / n
-#' The (conditional) average treatment effect on the treated (target.sample = treated):
+#'   \item The (conditional) average treatment effect on the treated (target.sample = treated):
 #'   sum_{Wi = 1} E[Y(1) - Y(0) | X = Xi] / |{i : Wi = 1}|
-#' The (conditional) average treatment effect on the controls (target.sample = control):
+#'   \item The (conditional) average treatment effect on the controls (target.sample = control):
 #'   sum_{Wi = 0} E[Y(1) - Y(0) | X = Xi] / |{i : Wi = 0}|
+#'   \item The overlap-weighted (conditional) average treatment effect
+#'   sum_{i = 1}^n e(Xi) (1 - e(Xi)) E[Y(1) - Y(0) | X = Xi] / sum_{i = 1}^n e(Xi) (1 - e(Xi)),
+#'   where e(x) = P[Wi = 1 | Xi = x].
+#' }
+#' This last estimand is recommended by Li, Morgan, and Zaslavsky (JASA, 2017)
+#' in case of poor overlap (i.e., when the propensities e(x) may be very close
+#' to 0 or 1), as it doesn't involve dividing by estimated propensities.
 #'
 #' @param forest The trained forest.
 #' @param target.sample Which sample to aggregate treatment effects over.
@@ -28,20 +35,24 @@
 #' X.test[,1] = seq(-2, 2, length.out = 101)
 #' c.pred = predict(c.forest, X.test)
 #' # Estimate the conditional average treatment effect on the full sample (CATE).
-#' estimate_average_effect(c.forest, target.sample = "all")
+#' average_treatment_effect(c.forest, target.sample = "all")
 #' 
 #' # Estimate the conditional average treatment effect on the treated sample (CATT).
 #' # We don't expect much difference between the CATE and the CATT in this example,
 #' # since treatment assignment was randomized.
-#' estimate_average_effect(c.forest, target.sample = "treated")
+#' average_treatment_effect(c.forest, target.sample = "treated")
 #' }
 #'
-#' @return An estimate of the average effect, along with standard error.
+#' @return An estimate of the average treatment effect, along with standard error.
 #' @export
-estimate_average_effect = function(forest,
-                                   target.sample=c("all", "treated", "control"),
-                                   method=c("AIPW", "TMLE")) {
+average_treatment_effect = function(forest,
+                                    target.sample=c("all", "treated", "control", "overlap"),
+                                    method=c("AIPW", "TMLE")) {
 
+  target.sample <- match.arg(target.sample)
+  method <- match.arg(method)
+  cluster.se <- length(forest$clusters) > 0
+  
   if (!("causal_forest" %in% class(forest))) {
     stop("Average effect estimation only implemented for causal_forest")
   }
@@ -50,12 +61,52 @@ estimate_average_effect = function(forest,
     stop("For average effect estimation to work, please train with precompute.nuisance = TRUE")
   }
   
-  if (!all(forest$W.orig %in% c(0, 1))) {
-    stop("Average effect estimation only implemented for binary treatment")
+  #
+  # Address the overlap case separately, as this is a very different estimation problem.
+  # The method argument (AIPW vs TMLE) is ignored in this case, as both methods are effectively
+  # the same here. Also, note that the overlap-weighted estimator generalizes naturally to the
+  # non-binary W case -- see, e.g., Robinson (Econometrica, 1988) -- and so we do not require
+  # W to be binary here.
+  #
+  
+  if (target.sample == "overlap") {
+    W.residual <- forest$W.orig - forest$W.hat
+    Y.residual <- forest$Y.orig - forest$Y.hat
+    tau.ols <- lm(Y.residual ~ W.residual)
+    tau.est <- coef(summary(tau.ols))[2,1]
+    
+    if (cluster.se) {
+      tau.se <- sqrt(sandwich::vcovCL(tau.ols, cluster = forest$clusters)[2,2])
+    } else {
+      tau.se <- sqrt(sandwich::vcovHC(tau.ols)[2,2])
+    }
+    
+    return(c(estimate=tau.est, std.err=tau.se))
   }
   
-  target.sample <- match.arg(target.sample)
-  method <- match.arg(method)
+  if (!all(forest$W.orig %in% c(0, 1))) {
+    stop(paste("Average treatment effect estimation only implemented for binary treatment.",
+               "See `average_partial_effect` for continuous W."))
+  }
+  
+  if (min(forest$W.hat) <= 0.01 && max(forest$W.hat) >= 0.99) {
+    rng = range(forest$W.hat)
+    warning(paste0("Estimated treatment propensities take values between ",
+                   round(rng[1], 3), " and ", round(rng[2], 3),
+                   " and in particular get very close to 0 and 1. ",
+                   "In this case, using `target.sample=overlap`, or filtering data as in ",
+                   "Crump, Hotz, Imbens, and Mitnik (Biometrika, 2009) may be helpful."))
+  } else if (min(forest$W.hat) <= 0.01 && target.sample != "treated") {
+    warning(paste0("Estimated treatment propensities go as low as ",
+                   round(min(forest$W.hat), 3), " which means that treatment ",
+                   "effects for some controls may not be well identified. ",
+                   "In this case, using `target.sample=treated` may be helpful."))
+  } else if (max(forest$W.hat) >= 0.99 && target.sample != "control") {
+    warning(paste0("Estimated treatment propensities go as high as ",
+                   round(max(forest$W.hat), 3), " which means that treatment ",
+                   "effects for some treated units may not be well identified. ",
+                   "In this case, using `target.sample=control` may be helpful."))
+  }
   
   control.idx <- which(forest$W.orig == 0)
   treated.idx <- which(forest$W.orig == 1)
@@ -109,7 +160,16 @@ estimate_average_effect = function(forest,
     dr.correction.all <- forest$W.orig * gamma * (forest$Y.orig - Y.hat.1) -
       (1 - forest$W.orig) * gamma * (forest$Y.orig - Y.hat.0)
     dr.correction <- mean(dr.correction.all)
-    sigma2.hat <- mean(dr.correction.all^2) / length(dr.correction.all)
+    
+    if (cluster.se) {
+      correction.clust <- Matrix::sparse.model.matrix(
+        ~ factor(forest$clusters) + 0,
+        transpose = TRUE) %*% dr.correction.all
+      sigma2.hat <- sum(correction.clust^2) / length(dr.correction.all) /
+        (length(dr.correction.all) - 1)
+    } else {
+      sigma2.hat <- mean(dr.correction.all^2) / (length(dr.correction.all) - 1)
+    }
     
   } else if (method == "TMLE") {
     
@@ -124,8 +184,15 @@ estimate_average_effect = function(forest,
       delta.tmle.robust.1 <- predict(eps.tmle.robust.1, newdata=data.frame(A=mean(1/forest$W.hat)))
       dr.correction <- delta.tmle.robust.1 - delta.tmle.robust.0
       # use robust SE
-      sigma2.hat <- sandwich::vcovHC(eps.tmle.robust.0) * mean(1/(1 - forest$W.hat))^2 +
-        sandwich::vcovHC(eps.tmle.robust.1) * mean(1/forest$W.hat)^2
+      if (cluster.se) {
+        sigma2.hat <- sandwich::vcovCL(eps.tmle.robust.0, cluster = forest$clusters[forest$W.orig==0]) *
+          mean(1/(1 - forest$W.hat))^2 +
+          sandwich::vcovCL(eps.tmle.robust.1, cluster = forest$clusters[forest$W.orig==1]) *
+          mean(1/forest$W.hat)^2
+      } else {
+        sigma2.hat <- sandwich::vcovHC(eps.tmle.robust.0) * mean(1/(1 - forest$W.hat))^2 +
+          sandwich::vcovHC(eps.tmle.robust.1) * mean(1/forest$W.hat)^2
+      }
     } else if (target.sample == "treated") {
       eps.tmle.robust.0 <-
         lm(B ~ A + 0,
@@ -135,8 +202,18 @@ estimate_average_effect = function(forest,
       delta.tmle.robust.0 <- predict(eps.tmle.robust.0,
                                      newdata=data.frame(A=new.center))
       dr.correction <- -delta.tmle.robust.0
-      sigma2.hat = sandwich::vcovHC(eps.tmle.robust.0) * new.center^2 +
-        var(forest$Y.orig[forest$W.orig==1]-Y.hat.1[forest$W.orig==1]) / sum(forest$W.orig==1)
+      if (cluster.se) {
+        s.0 <- sandwich::vcovCL(eps.tmle.robust.0, cluster = forest$clusters[forest$W.orig==0]) *
+          new.center^2
+        delta.1 <- Matrix::sparse.model.matrix(
+          ~ factor(forest$clusters[forest$W.orig==1]) + 0,
+          transpose = TRUE) %*% (forest$Y.orig[forest$W.orig==1]-Y.hat.1[forest$W.orig==1])
+        s.1 <- sum(delta.1^2) / sum(forest$W.orig==1) / (sum(forest$W.orig==1) - 1)
+        sigma2.hat <- s.0 + s.1
+      } else {
+        sigma2.hat <- sandwich::vcovHC(eps.tmle.robust.0) * new.center^2 +
+          var(forest$Y.orig[forest$W.orig==1]-Y.hat.1[forest$W.orig==1]) / sum(forest$W.orig==1)
+      }
     } else if (target.sample == "control") {
       eps.tmle.robust.1 <-
         lm(B ~ A + 0,
@@ -146,8 +223,18 @@ estimate_average_effect = function(forest,
       delta.tmle.robust.1 <- predict(eps.tmle.robust.1,
                                      newdata=data.frame(A=new.center))
       dr.correction <- delta.tmle.robust.1
-      sigma2.hat = var(forest$Y.orig[forest$W.orig==0]-Y.hat.0[forest$W.orig==0]) / sum(forest$W.orig==0) +
-        sandwich::vcovHC(eps.tmle.robust.1) * new.center^2
+      if (cluster.se) {
+        delta.0 <- Matrix::sparse.model.matrix(
+          ~ factor(forest$clusters[forest$W.orig==0]) + 0,
+          transpose = TRUE) %*% (forest$Y.orig[forest$W.orig==0]-Y.hat.0[forest$W.orig==0])
+        s.0 <- sum(delta.0^2) / sum(forest$W.orig==0) / (sum(forest$W.orig==0) - 1)
+        s.1 <- sandwich::vcovCL(eps.tmle.robust.1, cluster = forest$clusters[forest$W.orig==1]) *
+          new.center^2
+        sigma2.hat <- s.0 + s.1
+      } else {
+        sigma2.hat <- var(forest$Y.orig[forest$W.orig==0]-Y.hat.0[forest$W.orig==0]) / sum(forest$W.orig==0) +
+          sandwich::vcovHC(eps.tmle.robust.1) * new.center^2
+      }
     } else {
       stop("Invalid target sample.")
     }

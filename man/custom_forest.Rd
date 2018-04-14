@@ -6,7 +6,8 @@
 \usage{
 custom_forest(X, Y, sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
   num.threads = NULL, min.node.size = NULL, honesty = TRUE,
-  alpha = 0.05, seed = NULL)
+  alpha = 0.05, imbalance.penalty = 0, seed = NULL, clusters = NULL,
+  samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
@@ -31,11 +32,17 @@ with size smaller than min.node.size can occur, as in the original randomForest 
 
 \item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
 
-\item{alpha}{Maximum imbalance of a split.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
+
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
 
 \item{seed}{The seed for the C++ random number generator.}
 
-\item{...}{Additional arguments (currently ignored).}
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+
+\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
+each cluster. Must be less than the size of the smallest cluster. If set to NULL
+software will set this value to the size of the smallest cluster.}
 }
 \value{
 A trained regression forest object.

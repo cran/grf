@@ -20,24 +20,34 @@
 
 
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#include "commons/globals.h"
 
 class SamplingOptions {
 public:
-  SamplingOptions(bool sample_with_replacement,
-                  const std::vector<double>& case_weights);
+  SamplingOptions();
+  SamplingOptions(uint samples_per_cluster,
+                  const std::vector<size_t>& clusters);
 
-  bool get_sample_with_replacement() const {
-    return sample_with_replacement;
-  }
+  const std::vector<double>& get_sample_weights() const;
 
-  const std::vector<double>& get_case_weights() const {
-    return case_weights;
-  }
+  /**
+   * A map from each cluster ID to the set of sample IDs it contains.
+   */
+  const std::vector<std::vector<size_t>>& get_clusters();
+
+  /**
+   * The number of samples that should be drawn from each cluster when
+   * training trees.
+   */
+  uint get_samples_per_cluster() const;
 
 private:
-  bool sample_with_replacement;
-  std::vector<double> case_weights;
+  std::vector<double> sample_weights;
+  uint num_samples_per_cluster;
+  std::vector<std::vector<size_t>> clusters;
 };
 
 #endif //GRF_SAMPLINGOPTIONS_H

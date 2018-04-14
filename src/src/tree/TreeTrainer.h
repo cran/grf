@@ -30,30 +30,31 @@
 
 class TreeTrainer {
 public:
-  TreeTrainer(std::shared_ptr<RelabelingStrategy> relabeling_strategy,
+  TreeTrainer(const std::unordered_map<size_t, size_t>& observables,
+              std::shared_ptr<RelabelingStrategy> relabeling_strategy,
               std::shared_ptr<SplittingRuleFactory> splitting_rule_factory,
-              std::shared_ptr<OptimizedPredictionStrategy> prediction_strategy,
-              const TreeOptions& options);
+              std::shared_ptr<OptimizedPredictionStrategy> prediction_strategy);
 
   std::shared_ptr<Tree> train(Data* data,
                               const Observations& observations,
                               RandomSampler& sampler,
-                              const std::vector<size_t>& samples);
+                              const std::vector<size_t>& clusters,
+                              const TreeOptions& options) const;
 
 private:
   void create_empty_node(std::vector<std::vector<size_t>>& child_nodes,
                          std::vector<std::vector<size_t>>& samples,
                          std::vector<size_t>& split_vars,
-                         std::vector<double>& split_values);
+                         std::vector<double>& split_values) const;
 
   void repopulate_leaf_nodes(std::shared_ptr<Tree> tree,
-                             Data *data,
-                             const std::vector<size_t> &leaf_samples);
+                             Data* data,
+                             const std::vector<size_t> &leaf_samples) const;
 
   void create_split_variable_subset(std::vector<size_t>& result,
                                     RandomSampler& sampler,
                                     Data* data,
-                                    const std::vector<double>& split_select_weights);
+                                    uint mtry) const;
 
   bool split_node(size_t node,
                   std::shared_ptr<SplittingRule> splitting_rule,
@@ -64,7 +65,7 @@ private:
                   std::vector<std::vector<size_t>>& samples,
                   std::vector<size_t>& split_vars,
                   std::vector<double>& split_values,
-                  const std::vector<double>& split_select_weights);
+                  const TreeOptions& tree_options) const;
 
   bool split_node_internal(size_t node,
                            std::shared_ptr<SplittingRule> splitting_rule,
@@ -72,13 +73,14 @@ private:
                            const std::vector<size_t>& possible_split_vars,
                            std::vector<std::vector<size_t>>& samples,
                            std::vector<size_t>& split_vars,
-                           std::vector<double>& split_values);
+                           std::vector<double>& split_values,
+                           uint min_node_size) const ;
+
+  std::set<size_t> disallowed_split_variables;
 
   std::shared_ptr<RelabelingStrategy> relabeling_strategy;
   std::shared_ptr<SplittingRuleFactory> splitting_rule_factory;
   std::shared_ptr<OptimizedPredictionStrategy> prediction_strategy;
-
-  TreeOptions options;
 };
 
 #endif //GRF_TREETRAINER_H

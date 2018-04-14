@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------------
-  This file is part of generalized-random-forest.
+  This file is part of generalized random forest (grf).
 
   grf is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -15,14 +15,17 @@
   along with grf. If not, see <http://www.gnu.org/licenses/>.
  #-------------------------------------------------------------------------------*/
 
-#include "splitting/RegularizedRegressionSplittingRule.h"
-#include "RegularizedRegressionSplittingRuleFactory.h"
+#include "splitting/factory/InstrumentalSplittingRuleFactory.h"
+#include "splitting/InstrumentalSplittingRule.h"
 
-RegularizedRegressionSplittingRuleFactory::RegularizedRegressionSplittingRuleFactory(Data* data,
-                                                                                     double alpha,
-                                                                                     bool downweight_penalty):
-    data(data), lambda(alpha), downweight_penalty(downweight_penalty) {}
+InstrumentalSplittingRuleFactory::InstrumentalSplittingRuleFactory() {}
 
-std::shared_ptr<SplittingRule> RegularizedRegressionSplittingRuleFactory::create() {
-  return std::shared_ptr<SplittingRule>(new RegularizedRegressionSplittingRule(data, lambda, downweight_penalty));
+std::shared_ptr<SplittingRule> InstrumentalSplittingRuleFactory::create(Data* data,
+                                                                        const Observations& observations,
+                                                                        const TreeOptions& options) {
+  return std::shared_ptr<SplittingRule>(new InstrumentalSplittingRule(data,
+      observations,
+      options.get_min_node_size(),
+      options.get_alpha(),
+      options.get_imbalance_penalty()));
 }

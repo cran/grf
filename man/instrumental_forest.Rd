@@ -7,8 +7,9 @@
 instrumental_forest(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
   num.trees = 2000, num.threads = NULL, min.node.size = NULL,
   honesty = TRUE, ci.group.size = 2, precompute.nuisance = TRUE,
-  split.regularization = 0, alpha = 0.05, lambda = 0,
-  downweight.penalty = FALSE, seed = NULL)
+  reduced.form.weight = 0, alpha = 0.05, imbalance.penalty = 0,
+  stabilize.splits = TRUE, seed = NULL, clusters = NULL,
+  samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the instrumental regression.}
@@ -47,17 +48,24 @@ and then run an instrumental forest on the residuals?
 This approach is recommended, computational resources
 permitting.}
 
-\item{split.regularization}{Whether splits should be regularized towards a naive
+\item{reduced.form.weight}{Whether splits should be regularized towards a naive
 splitting criterion that ignores the instrument (and
 instead emulates a causal forest).}
 
-\item{alpha}{Maximum imbalance of a split.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
 
-\item{lambda}{A tuning parameter to control the amount of split regularization (experimental).}
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
 
-\item{downweight.penalty}{Whether or not the regularization penalty should be downweighted (experimental).}
+\item{stabilize.splits}{Whether or not the instrument should be taken into account when
+determining the imbalance of a split (experimental).}
 
 \item{seed}{The seed for the C++ random number generator.}
+
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+
+\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
+each cluster. Must be less than the size of the smallest cluster. If set to NULL
+software will set this value to the size of the smallest cluster.}
 }
 \value{
 A trained instrumental forest object.

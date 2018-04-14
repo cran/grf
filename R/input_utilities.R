@@ -35,7 +35,7 @@ validate_num_threads <- function(num.threads) {
 
 validate_min_node_size <- function(min.node.size) {
   if (is.null(min.node.size)) {
-    min.node.size <- 0
+    min.node.size <- 5
   } else if (!is.numeric(min.node.size) | min.node.size < 0) {
     stop("Error: Invalid value for min.node.size")
   }
@@ -43,10 +43,30 @@ validate_min_node_size <- function(min.node.size) {
 }
 
 validate_sample_fraction <- function(sample.fraction) {
-  if (!is.numeric(sample.fraction) | sample.fraction <= 0 | sample.fraction > 1) {
+  if (is.null(sample.fraction)) {
+    sample.fraction <- 0.5
+  } else if (!is.numeric(sample.fraction) | sample.fraction <= 0 | sample.fraction > 1) {
     stop("Error: Invalid value for sample.fraction. Please give a value in (0,1].")
   }
   sample.fraction
+}
+
+validate_alpha <- function(alpha) {
+  if (is.null(alpha)) {
+    alpha <- 0.05
+  } else if (!is.numeric(alpha) | alpha < 0 | alpha > 0.25) {
+    stop("Error: Invalid value for alpha. Please give a value in [0,0.25].")
+  }
+  alpha
+}
+
+validate_imbalance_penalty <- function(imbalance.penalty) {
+  if (is.null(imbalance.penalty)) {
+    imbalance.penalty <- 0.0
+  } else if (!is.numeric(imbalance.penalty) | imbalance.penalty < 0) {
+    stop("Error: Invalid value for alpha. Please give a non-negative value.")
+  }
+  imbalance.penalty
 }
 
 validate_seed <- function(seed) {
@@ -56,11 +76,44 @@ validate_seed <- function(seed) {
   seed
 }
 
+validate_clusters <- function(clusters, X) {
+  if (is.null(clusters)) {
+    clusters <- vector(mode="numeric", length=0)
+  } else if (length(clusters) == 0) {
+    clusters <- vector(mode="numeric", length=0)
+  } else if (!is.vector(clusters) | !all(clusters == floor(clusters))) {
+    stop("Clusters must be a vector of integers.")
+  } else if (length(clusters) != nrow(X)) {
+    stop("Clusters has incorrect length.")
+  } else {
+    # convert to integers between 0 and n clusters
+    clusters <- as.numeric(as.factor(clusters)) - 1
+  }
+  clusters
+}
+
+validate_samples_per_cluster <- function(samples_per_cluster, clusters) {
+  if (is.null(clusters) || length(clusters) == 0) {
+    return(0)
+  }
+  cluster_size_counts <- table(clusters)
+  min_size <- unname(cluster_size_counts[order(cluster_size_counts)][1])
+  # Check for whether this number is too small?
+  if (is.null(samples_per_cluster)) {
+    samples_per_cluster <- min_size
+  } else if (samples_per_cluster > min_size) {
+    stop(paste("Smallest cluster has", min_size, "observations",
+         "samples_per_cluster of", samples_per_cluster, "is too large."))
+  }
+  samples_per_cluster
+}
+
 create_data_matrices <- function(X, ...) {
   default.data <- matrix(nrow=0, ncol=0);    
   sparse.data <- new("dgCMatrix", Dim = c(0L, 0L))
-  if (inherits(X, "dgCMatrix")) {
-    sparse.data = Matrix::cBind(X, ...)
+
+  if (inherits(X, "dgCMatrix") && ncol(X) > 1) {
+    sparse.data <- cbind(X, ...)
   } else {
     default.data <- as.matrix(cbind(X, ...))
   }

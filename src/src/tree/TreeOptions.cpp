@@ -20,43 +20,31 @@
 
 TreeOptions::TreeOptions(uint mtry,
                          uint min_node_size,
-                         const std::vector<double>& split_select_weights,
-                         const std::vector<size_t>& split_select_vars,
-                         const std::vector<size_t>& deterministic_vars,
-                         const std::set<size_t>& no_split_variables,
-                         bool honesty):
+                         bool honesty,
+                         double alpha,
+                         double imbalance_penalty):
   mtry(mtry),
   min_node_size(min_node_size),
-  split_select_weights(split_select_weights),
-  split_select_vars(split_select_vars),
-  deterministic_vars(deterministic_vars),
-  no_split_variables(no_split_variables),
-  honesty(honesty) {}
+  honesty(honesty),
+  alpha(alpha),
+  imbalance_penalty(imbalance_penalty) {}
 
-uint TreeOptions::get_mtry() {
+uint TreeOptions::get_mtry() const  {
   return mtry;
 }
 
-uint TreeOptions::get_min_node_size() {
+uint TreeOptions::get_min_node_size() const  {
   return min_node_size;
 }
 
-const std::vector<double>& TreeOptions::get_split_select_weights() {
-  return split_select_weights;
-}
-
-const std::vector<size_t>& TreeOptions::get_split_select_vars() {
-  return split_select_vars;
-}
-
-const std::vector<size_t>& TreeOptions::get_deterministic_vars() {
-  return deterministic_vars;
-}
-
-const std::set<size_t>& TreeOptions::get_no_split_variables() {
-  return no_split_variables;
-}
-
-bool TreeOptions::get_honesty() {
+bool TreeOptions::get_honesty() const {
   return honesty;
+}
+
+double TreeOptions::get_alpha() const {
+  return alpha;
+}
+
+double TreeOptions::get_imbalance_penalty() const {
+  return imbalance_penalty;
 }
