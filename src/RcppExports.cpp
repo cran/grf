@@ -283,8 +283,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // local_linear_predict
-Rcpp::List local_linear_predict(Rcpp::List forest, Rcpp::NumericMatrix input_data, Rcpp::NumericMatrix training_data, Eigen::SparseMatrix<double> sparse_input_data, Eigen::SparseMatrix<double> sparse_training_data, double lambda, bool use_unweighted_penalty, unsigned int num_threads);
-RcppExport SEXP _grf_local_linear_predict(SEXP forestSEXP, SEXP input_dataSEXP, SEXP training_dataSEXP, SEXP sparse_input_dataSEXP, SEXP sparse_training_dataSEXP, SEXP lambdaSEXP, SEXP use_unweighted_penaltySEXP, SEXP num_threadsSEXP) {
+Rcpp::List local_linear_predict(Rcpp::List forest, Rcpp::NumericMatrix input_data, Rcpp::NumericMatrix training_data, Eigen::SparseMatrix<double> sparse_input_data, Eigen::SparseMatrix<double> sparse_training_data, double lambda, bool use_unweighted_penalty, std::vector<size_t> linear_correction_variables, unsigned int num_threads);
+RcppExport SEXP _grf_local_linear_predict(SEXP forestSEXP, SEXP input_dataSEXP, SEXP training_dataSEXP, SEXP sparse_input_dataSEXP, SEXP sparse_training_dataSEXP, SEXP lambdaSEXP, SEXP use_unweighted_penaltySEXP, SEXP linear_correction_variablesSEXP, SEXP num_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -295,14 +295,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type sparse_training_data(sparse_training_dataSEXP);
     Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< bool >::type use_unweighted_penalty(use_unweighted_penaltySEXP);
+    Rcpp::traits::input_parameter< std::vector<size_t> >::type linear_correction_variables(linear_correction_variablesSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type num_threads(num_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(local_linear_predict(forest, input_data, training_data, sparse_input_data, sparse_training_data, lambda, use_unweighted_penalty, num_threads));
+    rcpp_result_gen = Rcpp::wrap(local_linear_predict(forest, input_data, training_data, sparse_input_data, sparse_training_data, lambda, use_unweighted_penalty, linear_correction_variables, num_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // local_linear_predict_oob
-Rcpp::List local_linear_predict_oob(Rcpp::List forest, Rcpp::NumericMatrix input_data, Eigen::SparseMatrix<double> sparse_input_data, double lambda, bool use_unweighted_penalty, unsigned int num_threads);
-RcppExport SEXP _grf_local_linear_predict_oob(SEXP forestSEXP, SEXP input_dataSEXP, SEXP sparse_input_dataSEXP, SEXP lambdaSEXP, SEXP use_unweighted_penaltySEXP, SEXP num_threadsSEXP) {
+Rcpp::List local_linear_predict_oob(Rcpp::List forest, Rcpp::NumericMatrix input_data, Eigen::SparseMatrix<double> sparse_input_data, double lambda, bool use_unweighted_penalty, std::vector<size_t> linear_correction_variables, unsigned int num_threads);
+RcppExport SEXP _grf_local_linear_predict_oob(SEXP forestSEXP, SEXP input_dataSEXP, SEXP sparse_input_dataSEXP, SEXP lambdaSEXP, SEXP use_unweighted_penaltySEXP, SEXP linear_correction_variablesSEXP, SEXP num_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -311,8 +312,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type sparse_input_data(sparse_input_dataSEXP);
     Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< bool >::type use_unweighted_penalty(use_unweighted_penaltySEXP);
+    Rcpp::traits::input_parameter< std::vector<size_t> >::type linear_correction_variables(linear_correction_variablesSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type num_threads(num_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(local_linear_predict_oob(forest, input_data, sparse_input_data, lambda, use_unweighted_penalty, num_threads));
+    rcpp_result_gen = Rcpp::wrap(local_linear_predict_oob(forest, input_data, sparse_input_data, lambda, use_unweighted_penalty, linear_correction_variables, num_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -334,8 +336,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grf_regression_train", (DL_FUNC) &_grf_regression_train, 15},
     {"_grf_regression_predict", (DL_FUNC) &_grf_regression_predict, 5},
     {"_grf_regression_predict_oob", (DL_FUNC) &_grf_regression_predict_oob, 5},
-    {"_grf_local_linear_predict", (DL_FUNC) &_grf_local_linear_predict, 8},
-    {"_grf_local_linear_predict_oob", (DL_FUNC) &_grf_local_linear_predict_oob, 6},
+    {"_grf_local_linear_predict", (DL_FUNC) &_grf_local_linear_predict, 9},
+    {"_grf_local_linear_predict_oob", (DL_FUNC) &_grf_local_linear_predict_oob, 7},
     {NULL, NULL, 0}
 };
 

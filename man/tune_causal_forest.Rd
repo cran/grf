@@ -4,7 +4,7 @@
 \alias{tune_causal_forest}
 \title{Causal forest tuning}
 \usage{
-tune_causal_forest(X, Y, W, num.fit.trees = 40, num.fit.reps = 100,
+tune_causal_forest(X, Y, W, num.fit.trees = 200, num.fit.reps = 50,
   num.optimize.reps = 1000, min.node.size = NULL, sample.fraction = 0.5,
   mtry = NULL, alpha = NULL, imbalance.penalty = NULL,
   stabilize.splits = TRUE, num.threads = NULL, honesty = TRUE,

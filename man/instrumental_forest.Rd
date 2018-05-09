@@ -4,12 +4,12 @@
 \alias{instrumental_forest}
 \title{Intrumental forest}
 \usage{
-instrumental_forest(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
-  num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-  honesty = TRUE, ci.group.size = 2, precompute.nuisance = TRUE,
-  reduced.form.weight = 0, alpha = 0.05, imbalance.penalty = 0,
-  stabilize.splits = TRUE, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL)
+instrumental_forest(X, Y, W, Z, Y.hat = NULL, W.hat = NULL, Z.hat = NULL,
+  sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
+  num.threads = NULL, min.node.size = NULL, honesty = TRUE,
+  ci.group.size = 2, reduced.form.weight = 0, alpha = 0.05,
+  imbalance.penalty = 0, stabilize.splits = TRUE, seed = NULL,
+  clusters = NULL, samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the instrumental regression.}
@@ -19,6 +19,16 @@ instrumental_forest(X, Y, W, Z, sample.fraction = 0.5, mtry = NULL,
 \item{W}{The treatment assignment (may be binary or real).}
 
 \item{Z}{The instrument (may be binary or real).}
+
+\item{Y.hat}{Estimates of the expected responses E[Y | Xi], marginalizing
+over treatment. If Y.hat = NULL, these are estimated using
+a separate regression forest.}
+
+\item{W.hat}{Estimates of the treatment propensities E[W | Xi]. If W.hat = NULL,
+these are estimated using a separate regression forest.}
+
+\item{Z.hat}{Estimates of the instrument propensities E[Z | Xi]. If Z.hat = NULL,
+these are estimated using a separate regression forest.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
 Note: If honesty is used, these subsamples will
@@ -41,12 +51,6 @@ with size smaller than min.node.size can occur, as in the original randomForest 
 \item{ci.group.size}{The forst will grow ci.group.size trees on each subsample.
 In order to provide confidence intervals, ci.group.size must
 be at least 2.}
-
-\item{precompute.nuisance}{Should we first run regression forests to estimate
-y(x) = E[Y|X=x], w(x) = E[W|X=x] and z(x) = E[Z|X=x],
-and then run an instrumental forest on the residuals?
-This approach is recommended, computational resources
-permitting.}
 
 \item{reduced.form.weight}{Whether splits should be regularized towards a naive
 splitting criterion that ignores the instrument (and

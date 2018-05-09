@@ -5,8 +5,9 @@
 \title{Predict with a regression forest}
 \usage{
 \method{predict}{regression_forest}(object, newdata = NULL,
-  local.linear = FALSE, lambda = 0, ridge.type = "standardized",
-  num.threads = NULL, estimate.variance = FALSE, ...)
+  linear.correction.variables = NULL, lambda = 0.01,
+  ridge.type = "standardized", num.threads = NULL,
+  estimate.variance = FALSE, ...)
 }
 \arguments{
 \item{object}{The trained forest.}
@@ -16,10 +17,11 @@ makes out-of-bag predictions on the training set instead
 (i.e., provides predictions at Xi using only trees that did
 not use the i-th training example).}
 
-\item{local.linear}{Optional local linear prediction correction. If TRUE,
-code will run a locally weighted ridge regression at each test point.
-Note that this is a beta feature still in development, and may slow down
-prediction considerably.}
+\item{linear.correction.variables}{Optional subset of indexes for variables to be used in local
+linear prediction. If NULL, standard GRF prediction is used. Otherwise,
+we run a locally weighted linear regression on the included variables.
+Please note that this is a beta feature still in development, and may slow down
+prediction considerably. Defaults to NULL.}
 
 \item{lambda}{Ridge penalty for local linear predictions}
 
