@@ -6,8 +6,8 @@
 \usage{
 custom_forest(X, Y, sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
   num.threads = NULL, min.node.size = NULL, honesty = TRUE,
-  alpha = 0.05, imbalance.penalty = 0, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL)
+  honesty.fraction = NULL, alpha = 0.05, imbalance.penalty = 0,
+  seed = NULL, clusters = NULL, samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
@@ -15,8 +15,8 @@ custom_forest(X, Y, sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
 \item{Y}{The outcome.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
-Note: If honesty is used, these subsamples will
-further be cut in half.}
+Note: If honesty = TRUE, these subsamples will
+further be cut by a factor of honesty.fraction.}
 
 \item{mtry}{Number of variables tried for each split.}
 
@@ -30,7 +30,11 @@ automatically selects an appropriate amount.}
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
 with size smaller than min.node.size can occur, as in the original randomForest package.}
 
-\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
+
+\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
+to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+honesty.fraction = NULL), half of the data will be used for determining splits}
 
 \item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
 

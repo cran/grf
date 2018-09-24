@@ -6,8 +6,8 @@
 #' @param X The covariates used in the regression.
 #' @param Y The outcome.
 #' @param sample.fraction Fraction of the data used to build each tree.
-#'                        Note: If honesty is used, these subsamples will
-#'                        further be cut in half.
+#'                        Note: If honesty = TRUE, these subsamples will
+#'                        further be cut by a factor of honesty.fraction.
 #' @param mtry Number of variables tried for each split.
 #' @param num.trees Number of trees grown in the forest. Note: Getting accurate
 #'                  confidence intervals generally requires more trees than
@@ -16,12 +16,16 @@
 #'                    automatically selects an appropriate amount.
 #' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
 #'                      with size smaller than min.node.size can occur, as in the original randomForest package.
-#' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
+#' @param honesty Whether to use honest splitting (i.e., sub-sample splitting).
+#' @param honesty.fraction The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
+#'                         to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+#'                         honesty.fraction = NULL), half of the data will be used for determining splits
 #' @param ci.group.size The forest will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2.
 #' @param alpha A tuning parameter that controls the maximum imbalance of a split.
 #' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized.
+#' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed.
 #' @param seed The seed for the C++ random number generator.
 #' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
 #' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
@@ -64,9 +68,11 @@ regression_forest <- function(X, Y,
                               num.threads = NULL,
                               min.node.size = NULL,
                               honesty = TRUE,
+                              honesty.fraction = NULL,
                               ci.group.size = 2,
                               alpha = NULL,
                               imbalance.penalty = NULL,
+                              compute.oob.predictions = TRUE,
                               seed = NULL,
                               clusters = NULL,
                               samples_per_cluster = NULL,
@@ -81,6 +87,7 @@ regression_forest <- function(X, Y,
     seed <- validate_seed(seed)
     clusters <- validate_clusters(clusters, X)
     samples_per_cluster <- validate_samples_per_cluster(samples_per_cluster, clusters)
+    honesty.fraction <- validate_honesty_fraction(honesty.fraction, honesty)
     
     if (tune.parameters) {
       tuning.output <- tune_regression_forest(X, Y,
@@ -94,6 +101,7 @@ regression_forest <- function(X, Y,
                                               imbalance.penalty = imbalance.penalty,
                                               num.threads = num.threads,
                                               honesty = honesty,
+                                              honesty.fraction = honesty.fraction,
                                               seed = seed,
                                               clusters = clusters,
                                               samples_per_cluster = samples_per_cluster)
@@ -118,18 +126,27 @@ regression_forest <- function(X, Y,
                                as.numeric(tunable.params["sample.fraction"]),
                                seed,
                                honesty,
+                               coerce_honesty_fraction(honesty.fraction),
                                ci.group.size,
                                as.numeric(tunable.params["alpha"]),
                                as.numeric(tunable.params["imbalance.penalty"]),
                                clusters,
                                samples_per_cluster)
-    
+
     forest[["ci.group.size"]] <- ci.group.size
     forest[["X.orig"]] <- X
+    forest[["Y.orig"]] <- Y
     forest[["clusters"]] <- clusters
     forest[["tunable.params"]] <- tunable.params
-    
+
     class(forest) <- c("regression_forest", "grf")
+
+    if (compute.oob.predictions) {
+        oob.pred <- predict(forest)
+        forest[["predictions"]] <- oob.pred$predictions
+        forest[["debiased.error"]] <- oob.pred$debiased.error
+    }
+
     forest
 }
 
@@ -147,8 +164,10 @@ regression_forest <- function(X, Y,
 #'                   we run a locally weighted linear regression on the included variables.
 #'                   Please note that this is a beta feature still in development, and may slow down
 #'                   prediction considerably. Defaults to NULL.
-#' @param lambda Ridge penalty for local linear predictions
-#' @param ridge.type Option to standardize ridge penalty by covariance ("standardized"),
+#' @param ll.lambda Ridge penalty for local linear predictions
+#' @param tune.lambda Optional self-tuning for ridge penalty lambda. Defaults to FALSE.
+#' @param lambda.path Optional list of lambdas to use for cross-validation, used if tune.lambda is TRUE.
+#' @param ll.ridge.type Option to standardize ridge penalty by covariance ("standardized"),
 #'                   or penalize all covariates equally ("identity").
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
@@ -178,15 +197,27 @@ regression_forest <- function(X, Y,
 #' r.pred = predict(r.forest, X.test, estimate.variance = TRUE)
 #' }
 #'
+#' @method predict regression_forest
 #' @export
 predict.regression_forest <- function(object, newdata = NULL,
                                       linear.correction.variables = NULL,
-                                      lambda = 0.01,
-                                      ridge.type = "standardized",
+                                      ll.lambda = 0.01,
+                                      tune.lambda = FALSE,
+                                      lambda.path = NULL,
+                                      ll.ridge.type = "standardized",
                                       num.threads = NULL,
                                       estimate.variance = FALSE,
                                       ...) {
-    num.threads <- validate_num_threads(num.threads)
+
+    local.linear = !is.null(linear.correction.variables)
+
+    # If possible, use pre-computed predictions.
+    if (is.null(newdata) & !estimate.variance & !local.linear & !is.null(object$predictions)) {
+        return(data.frame(predictions=object$predictions,
+                          debiased.error=object$debiased.error))
+    }
+
+    num.threads = validate_num_threads(num.threads)
 
     if (estimate.variance) {
         ci.group.size = object$ci.group.size
@@ -194,41 +225,52 @@ predict.regression_forest <- function(object, newdata = NULL,
         ci.group.size = 1
     }
 
-    if (ridge.type == "standardized") {
-        use_unweighted_penalty = 0
-    } else if (ridge.type == "identity") {
-        use_unweighted_penalty = 1
+    if (ll.ridge.type == "standardized") {
+        use.unweighted.penalty = 0
+    } else if (ll.ridge.type == "identity") {
+        use.unweighted.penalty = 1
     } else {
-        stop("Error: invalid ridge type")
+        stop("Error: invalid local linear ridge type")
     }
 
-    forest.short <- object[-which(names(object) == "X.orig")]
+    forest.short = object[-which(names(object) == "X.orig")]
     X.orig = object[["X.orig"]]
 
-    local.linear = !is.null(linear.correction.variables)
-
-    # subtract 1 for C++ indexing
     if (local.linear) {
-        linear.correction.variables = linear.correction.variables - 1
+        linear.correction.variables = validate_ll_vars(linear.correction.variables, ncol(X.orig))
+
+        if (tune.lambda) {
+            ll.regularization.path = tune_local_linear_forest(object, linear.correction.variables, use.unweighted.penalty, num.threads, lambda.path)
+            ll.lambda = ll.regularization.path$lambda.min
+        } else {
+            ll.lambda = validate_ll_lambda(ll.lambda)
+        }
+
+        # subtract 1 to account for C++ indexing
+        linear.correction.variables <- linear.correction.variables - 1
     }
 
     if (!is.null(newdata) ) {
-        data <- create_data_matrices(newdata)
+        data = create_data_matrices(newdata)
         if (!local.linear) {
-            regression_predict(forest.short, data$default, data$sparse,
+            ret = regression_predict(forest.short, data$default, data$sparse,
                 num.threads, ci.group.size)
         } else {
-            training.data <- create_data_matrices(X.orig)
-            local_linear_predict(forest.short, data$default, training.data$default, data$sparse,
-                training.data$sparse, lambda, use_unweighted_penalty, linear.correction.variables, num.threads)
+            training.data = create_data_matrices(X.orig)
+            ret = local_linear_predict(forest.short, data$default, training.data$default, data$sparse,
+                training.data$sparse, ll.lambda, use.unweighted.penalty, linear.correction.variables, num.threads)
         }
     } else {
-        data <- create_data_matrices(X.orig)
+        data = create_data_matrices(X.orig)
         if (!local.linear) {
-            regression_predict_oob(forest.short, data$default, data$sparse, num.threads, ci.group.size)
+            ret = regression_predict_oob(forest.short, data$default, data$sparse, num.threads, ci.group.size)
         } else {
-            local_linear_predict_oob(forest.short, data$default, data$sparse, lambda, use_unweighted_penalty,
+            ret = local_linear_predict_oob(forest.short, data$default, data$sparse, ll.lambda, use.unweighted.penalty,
                 linear.correction.variables, num.threads)
         }
     }
+
+    # Convert list to data frame.
+    empty = sapply(ret, function(elem) length(elem) == 0)
+    do.call(cbind.data.frame, ret[!empty])
 }

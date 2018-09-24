@@ -4,13 +4,18 @@
 \alias{average_partial_effect}
 \title{Estimate average partial effects using a causal forest}
 \usage{
-average_partial_effect(forest, calibrate.weights = TRUE)
+average_partial_effect(forest, calibrate.weights = TRUE, subset = NULL)
 }
 \arguments{
 \item{forest}{The trained forest.}
 
 \item{calibrate.weights}{Whether to force debiasing weights to match expected
 moments for 1, W, W.hat, and 1/Var[W|X].}
+
+\item{subset}{Specifies a subset of the training examples over which we
+estimate the ATE. WARNING: For valid statistical performance,
+the subset should be defined only using features Xi, not using
+the treatment Wi or the outcome Yi.}
 }
 \value{
 An estimate of the average partial effect, along with standard error.
@@ -31,6 +36,7 @@ Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
 tau.forest = causal_forest(X, Y, W)
 tau.hat = predict(tau.forest)
 average_partial_effect(tau.forest)
+average_partial_effect(tau.forest, subset = X[,1] > 0)
 }
 
 }

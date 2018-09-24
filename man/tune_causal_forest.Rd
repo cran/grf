@@ -8,7 +8,8 @@ tune_causal_forest(X, Y, W, num.fit.trees = 200, num.fit.reps = 50,
   num.optimize.reps = 1000, min.node.size = NULL, sample.fraction = 0.5,
   mtry = NULL, alpha = NULL, imbalance.penalty = NULL,
   stabilize.splits = TRUE, num.threads = NULL, honesty = TRUE,
-  seed = NULL, clusters = NULL, samples_per_cluster = NULL)
+  honesty.fraction = NULL, seed = NULL, clusters = NULL,
+  samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the causal regression.}
@@ -28,8 +29,8 @@ to select the optimal parameters.}
 with size smaller than min.node.size can occur, as in the original randomForest package.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
-Note: If honesty is used, these subsamples will
-further be cut in half.}
+Note: If honesty = TRUE, these subsamples will
+further be cut by a factor of honesty.fraction.}
 
 \item{mtry}{Number of variables tried for each split.}
 
@@ -43,7 +44,11 @@ determining the imbalance of a split (experimental).}
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
 
-\item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
+
+\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
+to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+honesty.fraction = NULL), half of the data will be used for determining splits}
 
 \item{seed}{The seed of the C++ random number generator.}
 

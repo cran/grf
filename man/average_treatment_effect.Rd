@@ -5,7 +5,7 @@
 \title{Estimate average treatment effects using a causal forest}
 \usage{
 average_treatment_effect(forest, target.sample = c("all", "treated",
-  "control", "overlap"), method = c("AIPW", "TMLE"))
+  "control", "overlap"), method = c("AIPW", "TMLE"), subset = NULL)
 }
 \arguments{
 \item{forest}{The trained forest.}
@@ -15,6 +15,11 @@ average_treatment_effect(forest, target.sample = c("all", "treated",
 \item{method}{Method used for doubly robust inference. Can be either
 augmented inverse-propensity weighting (AIPW), or
 targeted maximum likelihood estimation (TMLE).}
+
+\item{subset}{Specifies subset of the training examples over which we
+estimate the ATE. WARNING: For valid statistical performance,
+the subset should be defined only using features Xi, not using
+the treatment Wi or the outcome Yi.}
 }
 \value{
 An estimate of the average treatment effect, along with standard error.
@@ -56,6 +61,9 @@ average_treatment_effect(c.forest, target.sample = "all")
 # We don't expect much difference between the CATE and the CATT in this example,
 # since treatment assignment was randomized.
 average_treatment_effect(c.forest, target.sample = "treated")
+
+# Estimate the conditional average treatment effect on samples with positive X[,1].
+average_treatment_effect(c.forest, target.sample = "all", X[,1] > 0)
 }
 
 }

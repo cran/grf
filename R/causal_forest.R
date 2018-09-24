@@ -19,8 +19,8 @@
 #' @param W.hat Estimates of the treatment propensities E[W | Xi]. If W.hat = NULL,
 #'              these are estimated using a separate regression forest.
 #' @param sample.fraction Fraction of the data used to build each tree.
-#'                        Note: If honesty is used, these subsamples will
-#'                        further be cut in half.
+#'                        Note: If honesty = TRUE, these subsamples will
+#'                        further be cut by a factor of honesty.fraction.
 #' @param mtry Number of variables tried for each split.
 #' @param num.trees Number of trees grown in the forest. Note: Getting accurate
 #'                  confidence intervals generally requires more trees than
@@ -29,7 +29,10 @@
 #'                    automatically selects an appropriate amount.
 #' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
 #'                      with size smaller than min.node.size can occur, as in the original randomForest package.
-#' @param honesty Whether or not honest splitting (i.e., sub-sample splitting) should be used.
+#' @param honesty Whether to use honest splitting (i.e., sub-sample splitting).
+#' @param honesty.fraction The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
+#'                         to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+#'                         honesty.fraction = NULL), half of the data will be used for determining splits
 #' @param ci.group.size The forest will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2.
@@ -37,6 +40,7 @@
 #' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized.
 #' @param stabilize.splits Whether or not the treatment should be taken into account when
 #'                         determining the imbalance of a split (experimental).
+#' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed.
 #' @param seed The seed of the C++ random number generator.
 #' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
 #' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
@@ -110,10 +114,12 @@ causal_forest <- function(X, Y, W,
                           num.threads = NULL,
                           min.node.size = NULL,
                           honesty = TRUE,
+                          honesty.fraction = NULL,
                           ci.group.size = 2,
                           alpha = NULL,
                           imbalance.penalty = NULL,
                           stabilize.splits = TRUE,
+                          compute.oob.predictions = TRUE,
                           seed = NULL,
                           clusters = NULL,
                           samples_per_cluster = NULL,
@@ -129,13 +135,14 @@ causal_forest <- function(X, Y, W,
     seed <- validate_seed(seed)
     clusters <- validate_clusters(clusters, X)
     samples_per_cluster <- validate_samples_per_cluster(samples_per_cluster, clusters)
+    honesty.fraction <- validate_honesty_fraction(honesty.fraction, honesty)
     
     reduced.form.weight <- 0
 
     if (is.null(Y.hat)) {
       forest.Y <- regression_forest(X, Y, sample.fraction = sample.fraction, mtry = mtry, tune.parameters = tune.parameters,
-                                    num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                    honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
+                                    num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, honesty = TRUE,
+                                    honesty.fraction = NULL, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
                                     clusters = clusters, samples_per_cluster = samples_per_cluster);
       Y.hat <- predict(forest.Y)$predictions
     } else if (length(Y.hat) == 1) {
@@ -146,8 +153,8 @@ causal_forest <- function(X, Y, W,
 
     if (is.null(W.hat)) {
       forest.W <- regression_forest(X, W, sample.fraction = sample.fraction, mtry = mtry, tune.parameters = tune.parameters,
-                                    num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, 
-                                    honesty = TRUE, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
+                                    num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, honesty = TRUE,
+                                    honesty.fraction = NULL, seed = seed, ci.group.size = 1, alpha = alpha, imbalance.penalty = imbalance.penalty,
                                     clusters = clusters, samples_per_cluster = samples_per_cluster);
       W.hat <- predict(forest.W)$predictions
     } else if (length(W.hat) == 1) {
@@ -172,6 +179,7 @@ causal_forest <- function(X, Y, W,
                                           stabilize.splits = stabilize.splits,
                                           num.threads = num.threads,
                                           honesty = honesty,
+                                          honesty.fraction = honesty.fraction,
                                           seed = seed,
                                           clusters = clusters,
                                           samples_per_cluster = samples_per_cluster)
@@ -199,6 +207,7 @@ causal_forest <- function(X, Y, W,
                                  as.numeric(tunable.params["sample.fraction"]),
                                  seed,
                                  honesty,
+                                 coerce_honesty_fraction(honesty.fraction),
                                  ci.group.size,
                                  reduced.form.weight,
                                  as.numeric(tunable.params["alpha"]),
@@ -215,8 +224,15 @@ causal_forest <- function(X, Y, W,
     forest[["W.hat"]] <- W.hat
     forest[["clusters"]] <- clusters
     forest[["tunable.params"]] <- tunable.params
-    
+
     class(forest) <- c("causal_forest", "grf")
+
+    if (compute.oob.predictions) {
+        oob.pred <- predict(forest)
+        forest[["predictions"]] <- oob.pred$predictions
+        forest[["debiased.error"]] <- oob.pred$debiased.error
+    }
+
     forest
 }
 
@@ -258,24 +274,37 @@ causal_forest <- function(X, Y, W,
 #' c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
 #' }
 #'
+#' @method predict causal_forest
 #' @export
 predict.causal_forest <- function(object, newdata = NULL, num.threads = NULL, estimate.variance = FALSE, ...) {
-  num.threads <- validate_num_threads(num.threads) 
-  if (estimate.variance) {
-      ci.group.size = object$ci.group.size
-  } else {
-      ci.group.size = 1
-  }
 
-  forest.short <- object[-which(names(object) == "X.orig")]
-  if (!is.null(newdata)) {
-      data <- create_data_matrices(newdata)
-      instrumental_predict(forest.short, data$default, data$sparse,
-                           num.threads, ci.group.size)
-  } else {
-      data <- create_data_matrices(object[["X.orig"]])
-      instrumental_predict_oob(forest.short, data$default, data$sparse,
-                               num.threads, ci.group.size)
-  }
+    # If possible, use pre-computed predictions.
+    if (is.null(newdata) & !estimate.variance & !is.null(object$predictions)) {
+        return(data.frame(predictions=object$predictions,
+                          debiased.error=object$debiased.error))
+    }
+
+    num.threads <- validate_num_threads(num.threads)
+
+    if (estimate.variance) {
+        ci.group.size = object$ci.group.size
+    } else {
+        ci.group.size = 1
+    }
+
+    forest.short <- object[-which(names(object) == "X.orig")]
+    if (!is.null(newdata)) {
+        data <- create_data_matrices(newdata)
+        ret <- instrumental_predict(forest.short, data$default, data$sparse,
+                                    num.threads, ci.group.size)
+    } else {
+        data <- create_data_matrices(object[["X.orig"]])
+        ret <- instrumental_predict_oob(forest.short, data$default, data$sparse,
+                                        num.threads, ci.group.size)
+    }
+
+    # Convert list to data frame.
+    empty = sapply(ret, function(elem) length(elem) == 0)
+    do.call(cbind.data.frame, ret[!empty])
 }
 
