@@ -4,7 +4,8 @@
 \alias{average_partial_effect}
 \title{Estimate average partial effects using a causal forest}
 \usage{
-average_partial_effect(forest, calibrate.weights = TRUE, subset = NULL)
+average_partial_effect(forest, calibrate.weights = TRUE, subset = NULL,
+  num.trees.for.variance = 500)
 }
 \arguments{
 \item{forest}{The trained forest.}
@@ -16,6 +17,8 @@ moments for 1, W, W.hat, and 1/Var[W|X].}
 estimate the ATE. WARNING: For valid statistical performance,
 the subset should be defined only using features Xi, not using
 the treatment Wi or the outcome Yi.}
+
+\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x].}
 }
 \value{
 An estimate of the average partial effect, along with standard error.
@@ -26,6 +29,12 @@ the (conditional) average treatment effect (target.sample = all):
   1/n sum_{i = 1}^n Cov[Wi, Yi | X = Xi] / Var[Wi | X = Xi].
 Note that for a binary unconfounded treatment, the
 average partial effect matches the average treatment effect.
+}
+\details{
+If clusters are specified, then each cluster gets equal weight. For example,
+if there are 10 clusters with 1 unit each and per-cluster APE = 1, and there
+are 10 clusters with 19 units each and per-cluster APE = 0, then the overall
+APE is 0.5 (not 0.05).
 }
 \examples{
 \dontrun{

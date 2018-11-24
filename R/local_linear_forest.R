@@ -20,14 +20,22 @@
 #' @param honesty.fraction The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
 #'                         to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
 #'                         honesty.fraction = NULL), half of the data will be used for determining splits
+#' @param ci.group.size The forest will grow ci.group.size trees on each subsample.
+#'                      In order to provide confidence intervals, ci.group.size must
+#'                      be at least 2.
 #' @param alpha A tuning parameter that controls the maximum imbalance of a split.
 #' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized.
 #' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed.
 #' @param seed The seed for the C++ random number generator.
 #' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
 #' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
-#'                            each cluster. Must be less than the size of the smallest cluster. If set to NULL
-#'                            software will set this value to the size of the smallest cluster.
+#'                            each cluster when training a tree. If NULL, we set samples_per_cluster to the size
+#'                            of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+#'                            the whole cluster is used every time the cluster is drawn. Note that
+#'                            clusters with less than samples_per_cluster observations get relatively
+#'                            smaller weight than others in training the forest, i.e., the contribution
+#'                            of a given cluster to the final forest scales with the minimum of
+#'                            the number of observations in the cluster and samples_per_cluster.
 #' @param tune.parameters If true, NULL parameters are tuned by cross-validation; if false
 #'                        NULL parameters are set to defaults.
 #' @param num.fit.trees The number of trees in each 'mini forest' used to fit the tuning model.
@@ -54,6 +62,7 @@ local_linear_forest <- function(X, Y,
                                 min.node.size = NULL,
                                 honesty = TRUE,
                                 honesty.fraction = NULL,
+                                ci.group.size = 1, 
                                 alpha = NULL,
                                 imbalance.penalty = NULL,
                                 compute.oob.predictions = FALSE,
@@ -102,7 +111,6 @@ local_linear_forest <- function(X, Y,
   data <- create_data_matrices(X, Y)
   outcome.index <- ncol(X) + 1
 
-  ci.group.size = 1
   forest <- regression_train(data$default, data$sparse, outcome.index,
                              as.numeric(tunable.params["mtry"]),
                              num.trees,
@@ -151,10 +159,12 @@ local_linear_forest <- function(X, Y,
 #'                   Please note that this is a beta feature still in development, and may slow down
 #'                   prediction considerably. Defaults to NULL.
 #' @param ll.lambda Ridge penalty for local linear predictions
-#' @param ll.ridge.type Option to standardize ridge penalty by covariance ("standardized"),
-#'                   or penalize all covariates equally ("identity").
+#' @param ll.weight.penalty Option to standardize ridge penalty by covariance (TRUE),
+#'                            or penalize all covariates equally (FALSE). Defaults to FALSE.
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
+#' @param estimate.variance Whether variance estimates for hat{tau}(x) are desired
+#'                          (for confidence intervals).
 #' @param ... Additional arguments (currently ignored).
 #'
 #' @return A vector of predictions.
@@ -180,8 +190,9 @@ local_linear_forest <- function(X, Y,
 predict.local_linear_forest <- function(object, newdata = NULL,
                                         linear.correction.variables = NULL,
                                         ll.lambda = NULL,
-                                        ll.ridge.type = "standardized",
+                                        ll.weight.penalty = FALSE,
                                         num.threads = NULL,
+                                        estimate.variance = FALSE,
                                         ...) {
 
   forest.short = object[-which(names(object) == "X.orig")]
@@ -192,19 +203,17 @@ predict.local_linear_forest <- function(object, newdata = NULL,
   # Validate and account for C++ indexing
   linear.correction.variables = validate_ll_vars(linear.correction.variables, ncol(X.orig))
 
-  if (ll.ridge.type == "standardized") {
-    use.unweighted.penalty = 0
-  } else if (ll.ridge.type == "identity") {
-    use.unweighted.penalty = 1
-  } else {
-    stop("Error: invalid local linear ridge type")
-  }
-
   if (is.null(ll.lambda)) {
-    ll.regularization.path = tune_local_linear_forest(object, linear.correction.variables, use.unweighted.penalty, num.threads)
+    ll.regularization.path = tune_local_linear_forest(object, linear.correction.variables, ll.weight.penalty, num.threads)
     ll.lambda = ll.regularization.path$lambda.min
   } else {
     ll.lambda = validate_ll_lambda(ll.lambda)
+  }
+
+  if (estimate.variance) {
+    ci.group.size = object$ci.group.size
+  } else {
+    ci.group.size = 1
   }
 
   num.threads = validate_num_threads(num.threads)
@@ -216,11 +225,12 @@ predict.local_linear_forest <- function(object, newdata = NULL,
     data = create_data_matrices(newdata)
     training.data = create_data_matrices(X.orig)
     ret = local_linear_predict(forest.short, data$default, training.data$default, data$sparse,
-                  training.data$sparse, ll.lambda, use.unweighted.penalty, linear.correction.variables, num.threads)
+                  training.data$sparse, ll.lambda, ll.weight.penalty, linear.correction.variables,
+                  num.threads, ci.group.size)
   } else {
      data = create_data_matrices(X.orig)
-     ret = local_linear_predict_oob(forest.short, data$default, data$sparse, ll.lambda, use.unweighted.penalty,
-                  linear.correction.variables, num.threads)
+     ret = local_linear_predict_oob(forest.short, data$default, data$sparse, ll.lambda, ll.weight.penalty,
+                  linear.correction.variables, num.threads, ci.group.size)
   }
 
   ret[["ll.lambda"]] = ll.lambda

@@ -6,9 +6,10 @@
 \usage{
 local_linear_forest(X, Y, sample.fraction = 0.5, mtry = NULL,
   num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-  honesty = TRUE, honesty.fraction = NULL, alpha = NULL,
-  imbalance.penalty = NULL, compute.oob.predictions = FALSE, seed = NULL,
-  clusters = NULL, samples_per_cluster = NULL, tune.parameters = FALSE,
+  honesty = TRUE, honesty.fraction = NULL, ci.group.size = 1,
+  alpha = NULL, imbalance.penalty = NULL,
+  compute.oob.predictions = FALSE, seed = NULL, clusters = NULL,
+  samples_per_cluster = NULL, tune.parameters = FALSE,
   num.fit.trees = 10, num.fit.reps = 100, num.optimize.reps = 1000)
 }
 \arguments{
@@ -38,6 +39,10 @@ with size smaller than min.node.size can occur, as in the original randomForest 
 to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
 honesty.fraction = NULL), half of the data will be used for determining splits}
 
+\item{ci.group.size}{The forest will grow ci.group.size trees on each subsample.
+In order to provide confidence intervals, ci.group.size must
+be at least 2.}
+
 \item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
 
 \item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
@@ -49,8 +54,13 @@ honesty.fraction = NULL), half of the data will be used for determining splits}
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
 \item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
-each cluster. Must be less than the size of the smallest cluster. If set to NULL
-software will set this value to the size of the smallest cluster.}
+each cluster when training a tree. If NULL, we set samples_per_cluster to the size
+of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+the whole cluster is used every time the cluster is drawn. Note that
+clusters with less than samples_per_cluster observations get relatively
+smaller weight than others in training the forest, i.e., the contribution
+of a given cluster to the final forest scales with the minimum of
+the number of observations in the cluster and samples_per_cluster.}
 
 \item{tune.parameters}{If true, NULL parameters are tuned by cross-validation; if false
 NULL parameters are set to defaults.}

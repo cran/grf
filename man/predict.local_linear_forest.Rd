@@ -6,7 +6,8 @@
 \usage{
 \method{predict}{local_linear_forest}(object, newdata = NULL,
   linear.correction.variables = NULL, ll.lambda = NULL,
-  ll.ridge.type = "standardized", num.threads = NULL, ...)
+  ll.weight.penalty = FALSE, num.threads = NULL,
+  estimate.variance = FALSE, ...)
 }
 \arguments{
 \item{object}{The trained forest.}
@@ -24,11 +25,14 @@ prediction considerably. Defaults to NULL.}
 
 \item{ll.lambda}{Ridge penalty for local linear predictions}
 
-\item{ll.ridge.type}{Option to standardize ridge penalty by covariance ("standardized"),
-or penalize all covariates equally ("identity").}
+\item{ll.weight.penalty}{Option to standardize ridge penalty by covariance (TRUE),
+or penalize all covariates equally (FALSE). Defaults to FALSE.}
 
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
+
+\item{estimate.variance}{Whether variance estimates for hat{tau}(x) are desired
+(for confidence intervals).}
 
 \item{...}{Additional arguments (currently ignored).}
 }

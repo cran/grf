@@ -113,7 +113,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // instrumental_train
-Rcpp::List instrumental_train(Rcpp::NumericMatrix input_data, Eigen::SparseMatrix<double> sparse_input_data, size_t outcome_index, size_t treatment_index, size_t instrument_index, unsigned int mtry, unsigned int num_trees, unsigned int num_threads, unsigned int min_node_size, double sample_fraction, unsigned int seed, bool honesty, double honesty_fraction, unsigned int ci_group_size, double reduced_form_weight, double alpha, bool imbalance_penalty, bool stabilize_splits, std::vector<size_t> clusters, unsigned int samples_per_cluster);
+Rcpp::List instrumental_train(Rcpp::NumericMatrix input_data, Eigen::SparseMatrix<double> sparse_input_data, size_t outcome_index, size_t treatment_index, size_t instrument_index, unsigned int mtry, unsigned int num_trees, unsigned int num_threads, unsigned int min_node_size, double sample_fraction, unsigned int seed, bool honesty, double honesty_fraction, unsigned int ci_group_size, double reduced_form_weight, double alpha, double imbalance_penalty, bool stabilize_splits, std::vector<size_t> clusters, unsigned int samples_per_cluster);
 RcppExport SEXP _grf_instrumental_train(SEXP input_dataSEXP, SEXP sparse_input_dataSEXP, SEXP outcome_indexSEXP, SEXP treatment_indexSEXP, SEXP instrument_indexSEXP, SEXP mtrySEXP, SEXP num_treesSEXP, SEXP num_threadsSEXP, SEXP min_node_sizeSEXP, SEXP sample_fractionSEXP, SEXP seedSEXP, SEXP honestySEXP, SEXP honesty_fractionSEXP, SEXP ci_group_sizeSEXP, SEXP reduced_form_weightSEXP, SEXP alphaSEXP, SEXP imbalance_penaltySEXP, SEXP stabilize_splitsSEXP, SEXP clustersSEXP, SEXP samples_per_clusterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -134,7 +134,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int >::type ci_group_size(ci_group_sizeSEXP);
     Rcpp::traits::input_parameter< double >::type reduced_form_weight(reduced_form_weightSEXP);
     Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
-    Rcpp::traits::input_parameter< bool >::type imbalance_penalty(imbalance_penaltySEXP);
+    Rcpp::traits::input_parameter< double >::type imbalance_penalty(imbalance_penaltySEXP);
     Rcpp::traits::input_parameter< bool >::type stabilize_splits(stabilize_splitsSEXP);
     Rcpp::traits::input_parameter< std::vector<size_t> >::type clusters(clustersSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type samples_per_cluster(samples_per_clusterSEXP);
@@ -287,8 +287,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // local_linear_predict
-Rcpp::List local_linear_predict(Rcpp::List forest, Rcpp::NumericMatrix input_data, Rcpp::NumericMatrix training_data, Eigen::SparseMatrix<double> sparse_input_data, Eigen::SparseMatrix<double> sparse_training_data, std::vector<double> lambdas, bool use_unweighted_penalty, std::vector<size_t> linear_correction_variables, unsigned int num_threads);
-RcppExport SEXP _grf_local_linear_predict(SEXP forestSEXP, SEXP input_dataSEXP, SEXP training_dataSEXP, SEXP sparse_input_dataSEXP, SEXP sparse_training_dataSEXP, SEXP lambdasSEXP, SEXP use_unweighted_penaltySEXP, SEXP linear_correction_variablesSEXP, SEXP num_threadsSEXP) {
+Rcpp::List local_linear_predict(Rcpp::List forest, Rcpp::NumericMatrix input_data, Rcpp::NumericMatrix training_data, Eigen::SparseMatrix<double> sparse_input_data, Eigen::SparseMatrix<double> sparse_training_data, std::vector<double> lambdas, bool weight_penalty, std::vector<size_t> linear_correction_variables, unsigned int num_threads, unsigned int ci_group_size);
+RcppExport SEXP _grf_local_linear_predict(SEXP forestSEXP, SEXP input_dataSEXP, SEXP training_dataSEXP, SEXP sparse_input_dataSEXP, SEXP sparse_training_dataSEXP, SEXP lambdasSEXP, SEXP weight_penaltySEXP, SEXP linear_correction_variablesSEXP, SEXP num_threadsSEXP, SEXP ci_group_sizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -298,16 +298,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type sparse_input_data(sparse_input_dataSEXP);
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type sparse_training_data(sparse_training_dataSEXP);
     Rcpp::traits::input_parameter< std::vector<double> >::type lambdas(lambdasSEXP);
-    Rcpp::traits::input_parameter< bool >::type use_unweighted_penalty(use_unweighted_penaltySEXP);
+    Rcpp::traits::input_parameter< bool >::type weight_penalty(weight_penaltySEXP);
     Rcpp::traits::input_parameter< std::vector<size_t> >::type linear_correction_variables(linear_correction_variablesSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type num_threads(num_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(local_linear_predict(forest, input_data, training_data, sparse_input_data, sparse_training_data, lambdas, use_unweighted_penalty, linear_correction_variables, num_threads));
+    Rcpp::traits::input_parameter< unsigned int >::type ci_group_size(ci_group_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(local_linear_predict(forest, input_data, training_data, sparse_input_data, sparse_training_data, lambdas, weight_penalty, linear_correction_variables, num_threads, ci_group_size));
     return rcpp_result_gen;
 END_RCPP
 }
 // local_linear_predict_oob
-Rcpp::List local_linear_predict_oob(Rcpp::List forest, Rcpp::NumericMatrix input_data, Eigen::SparseMatrix<double> sparse_input_data, std::vector<double> lambdas, bool use_unweighted_penalty, std::vector<size_t> linear_correction_variables, unsigned int num_threads);
-RcppExport SEXP _grf_local_linear_predict_oob(SEXP forestSEXP, SEXP input_dataSEXP, SEXP sparse_input_dataSEXP, SEXP lambdasSEXP, SEXP use_unweighted_penaltySEXP, SEXP linear_correction_variablesSEXP, SEXP num_threadsSEXP) {
+Rcpp::List local_linear_predict_oob(Rcpp::List forest, Rcpp::NumericMatrix input_data, Eigen::SparseMatrix<double> sparse_input_data, std::vector<double> lambdas, bool weight_penalty, std::vector<size_t> linear_correction_variables, unsigned int num_threads, unsigned int ci_group_size);
+RcppExport SEXP _grf_local_linear_predict_oob(SEXP forestSEXP, SEXP input_dataSEXP, SEXP sparse_input_dataSEXP, SEXP lambdasSEXP, SEXP weight_penaltySEXP, SEXP linear_correction_variablesSEXP, SEXP num_threadsSEXP, SEXP ci_group_sizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -315,10 +316,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type input_data(input_dataSEXP);
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type sparse_input_data(sparse_input_dataSEXP);
     Rcpp::traits::input_parameter< std::vector<double> >::type lambdas(lambdasSEXP);
-    Rcpp::traits::input_parameter< bool >::type use_unweighted_penalty(use_unweighted_penaltySEXP);
+    Rcpp::traits::input_parameter< bool >::type weight_penalty(weight_penaltySEXP);
     Rcpp::traits::input_parameter< std::vector<size_t> >::type linear_correction_variables(linear_correction_variablesSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type num_threads(num_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(local_linear_predict_oob(forest, input_data, sparse_input_data, lambdas, use_unweighted_penalty, linear_correction_variables, num_threads));
+    Rcpp::traits::input_parameter< unsigned int >::type ci_group_size(ci_group_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(local_linear_predict_oob(forest, input_data, sparse_input_data, lambdas, weight_penalty, linear_correction_variables, num_threads, ci_group_size));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -340,8 +342,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grf_regression_train", (DL_FUNC) &_grf_regression_train, 16},
     {"_grf_regression_predict", (DL_FUNC) &_grf_regression_predict, 5},
     {"_grf_regression_predict_oob", (DL_FUNC) &_grf_regression_predict_oob, 5},
-    {"_grf_local_linear_predict", (DL_FUNC) &_grf_local_linear_predict, 9},
-    {"_grf_local_linear_predict_oob", (DL_FUNC) &_grf_local_linear_predict_oob, 7},
+    {"_grf_local_linear_predict", (DL_FUNC) &_grf_local_linear_predict, 10},
+    {"_grf_local_linear_predict_oob", (DL_FUNC) &_grf_local_linear_predict_oob, 8},
     {NULL, NULL, 0}
 };
 

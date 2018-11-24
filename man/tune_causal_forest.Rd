@@ -5,11 +5,11 @@
 \title{Causal forest tuning}
 \usage{
 tune_causal_forest(X, Y, W, num.fit.trees = 200, num.fit.reps = 50,
-  num.optimize.reps = 1000, min.node.size = NULL, sample.fraction = 0.5,
-  mtry = NULL, alpha = NULL, imbalance.penalty = NULL,
-  stabilize.splits = TRUE, num.threads = NULL, honesty = TRUE,
-  honesty.fraction = NULL, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL)
+  num.optimize.reps = 1000, min.node.size = NULL,
+  sample.fraction = 0.5, mtry = NULL, alpha = NULL,
+  imbalance.penalty = NULL, stabilize.splits = TRUE,
+  num.threads = NULL, honesty = TRUE, honesty.fraction = NULL,
+  seed = NULL, clusters = NULL, samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the causal regression.}

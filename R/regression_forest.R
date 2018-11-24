@@ -29,8 +29,13 @@
 #' @param seed The seed for the C++ random number generator.
 #' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
 #' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
-#'                            each cluster. Must be less than the size of the smallest cluster. If set to NULL
-#'                            software will set this value to the size of the smallest cluster.
+#'                            each cluster when training a tree. If NULL, we set samples_per_cluster to the size
+#'                            of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+#'                            the whole cluster is used every time the cluster is drawn. Note that
+#'                            clusters with less than samples_per_cluster observations get relatively
+#'                            smaller weight than others in training the forest, i.e., the contribution
+#'                            of a given cluster to the final forest scales with the minimum of
+#'                            the number of observations in the cluster and samples_per_cluster.
 #' @param tune.parameters If true, NULL parameters are tuned by cross-validation; if false
 #'                        NULL parameters are set to defaults.
 #' @param num.fit.trees The number of trees in each 'mini forest' used to fit the tuning model.
@@ -165,10 +170,8 @@ regression_forest <- function(X, Y,
 #'                   Please note that this is a beta feature still in development, and may slow down
 #'                   prediction considerably. Defaults to NULL.
 #' @param ll.lambda Ridge penalty for local linear predictions
-#' @param tune.lambda Optional self-tuning for ridge penalty lambda. Defaults to FALSE.
-#' @param lambda.path Optional list of lambdas to use for cross-validation, used if tune.lambda is TRUE.
-#' @param ll.ridge.type Option to standardize ridge penalty by covariance ("standardized"),
-#'                   or penalize all covariates equally ("identity").
+#' @param ll.weight.penalty Option to standardize ridge penalty by covariance (TRUE),
+#'                            or penalize all covariates equally (FALSE). Defaults to FALSE.
 #' @param num.threads Number of threads used in training. If set to NULL, the software
 #'                    automatically selects an appropriate amount.
 #' @param estimate.variance Whether variance estimates for hat{tau}(x) are desired
@@ -201,10 +204,8 @@ regression_forest <- function(X, Y,
 #' @export
 predict.regression_forest <- function(object, newdata = NULL,
                                       linear.correction.variables = NULL,
-                                      ll.lambda = 0.01,
-                                      tune.lambda = FALSE,
-                                      lambda.path = NULL,
-                                      ll.ridge.type = "standardized",
+                                      ll.lambda = NULL,
+                                      ll.weight.penalty = FALSE,
                                       num.threads = NULL,
                                       estimate.variance = FALSE,
                                       ...) {
@@ -225,22 +226,14 @@ predict.regression_forest <- function(object, newdata = NULL,
         ci.group.size = 1
     }
 
-    if (ll.ridge.type == "standardized") {
-        use.unweighted.penalty = 0
-    } else if (ll.ridge.type == "identity") {
-        use.unweighted.penalty = 1
-    } else {
-        stop("Error: invalid local linear ridge type")
-    }
-
     forest.short = object[-which(names(object) == "X.orig")]
     X.orig = object[["X.orig"]]
 
     if (local.linear) {
         linear.correction.variables = validate_ll_vars(linear.correction.variables, ncol(X.orig))
 
-        if (tune.lambda) {
-            ll.regularization.path = tune_local_linear_forest(object, linear.correction.variables, use.unweighted.penalty, num.threads, lambda.path)
+        if (is.null(ll.lambda)) {
+            ll.regularization.path = tune_local_linear_forest(object, linear.correction.variables, ll.weight.penalty, num.threads)
             ll.lambda = ll.regularization.path$lambda.min
         } else {
             ll.lambda = validate_ll_lambda(ll.lambda)
@@ -258,15 +251,16 @@ predict.regression_forest <- function(object, newdata = NULL,
         } else {
             training.data = create_data_matrices(X.orig)
             ret = local_linear_predict(forest.short, data$default, training.data$default, data$sparse,
-                training.data$sparse, ll.lambda, use.unweighted.penalty, linear.correction.variables, num.threads)
+                training.data$sparse, ll.lambda, ll.weight.penalty, linear.correction.variables, num.threads,
+                ci.group.size)
         }
     } else {
         data = create_data_matrices(X.orig)
         if (!local.linear) {
             ret = regression_predict_oob(forest.short, data$default, data$sparse, num.threads, ci.group.size)
         } else {
-            ret = local_linear_predict_oob(forest.short, data$default, data$sparse, ll.lambda, use.unweighted.penalty,
-                linear.correction.variables, num.threads)
+            ret = local_linear_predict_oob(forest.short, data$default, data$sparse, ll.lambda, ll.weight.penalty,
+                linear.correction.variables, num.threads, ci.group.size)
         }
     }
 

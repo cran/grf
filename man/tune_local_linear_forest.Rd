@@ -5,7 +5,7 @@
 \title{Local linear forest tuning}
 \usage{
 tune_local_linear_forest(forest, linear.correction.variables = NULL,
-  use.unweighted.penalty = TRUE, num.threads = NULL, lambda.path = NULL)
+  ll.weight.penalty = FALSE, num.threads = NULL, lambda.path = NULL)
 }
 \arguments{
 \item{forest}{The forest used for prediction.}
@@ -13,7 +13,8 @@ tune_local_linear_forest(forest, linear.correction.variables = NULL,
 \item{linear.correction.variables}{Variables to use for local linear prediction. If left null,
 all variables are used.}
 
-\item{use.unweighted.penalty}{Optional parameter to adjust ridge regression standardization.}
+\item{ll.weight.penalty}{Option to standardize ridge penalty by covariance (TRUE),
+or penalize all covariates equally (FALSE). Defaults to FALSE.}
 
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}

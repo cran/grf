@@ -24,8 +24,13 @@
 #' @param seed The seed for the C++ random number generator.
 #' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
 #' @param samples_per_cluster If sampling by cluster, the number of observations to be sampled from
-#'                            each cluster. Must be less than the size of the smallest cluster. If set to NULL
-#'                            software will set this value to the size of the smallest cluster.
+#'                            each cluster when training a tree. If NULL, we set samples_per_cluster to the size
+#'                            of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+#'                            the whole cluster is used every time the cluster is drawn. Note that
+#'                            clusters with less than samples_per_cluster observations get relatively
+#'                            smaller weight than others in training the forest, i.e., the contribution
+#'                            of a given cluster to the final forest scales with the minimum of
+#'                            the number of observations in the cluster and samples_per_cluster.
 #'
 #' @return A trained regression forest object.
 #'
@@ -65,7 +70,7 @@ custom_forest <- function(X, Y, sample.fraction = 0.5, mtry = NULL,
     data <- create_data_matrices(X, Y)
     outcome.index <- ncol(X) + 1
     ci.group.size <- 1
-    
+
     forest <- custom_train(data$default, data$sparse, outcome.index, mtry,num.trees, num.threads,
         min.node.size, sample.fraction, seed, honesty, coerce_honesty_fraction(honesty.fraction),
         ci.group.size, alpha, imbalance.penalty, clusters, samples_per_cluster)
@@ -112,7 +117,7 @@ predict.custom_forest <- function(object, newdata = NULL, num.threads = NULL, ..
     }
         
     forest.short <- object[-which(names(object) == "X.orig")]
-    
+
     if (!is.null(newdata)) {
         data <- create_data_matrices(newdata)
         custom_predict(forest.short, data$default, data$sparse, num.threads)

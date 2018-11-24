@@ -4,12 +4,13 @@
 \alias{causal_forest}
 \title{Causal forest}
 \usage{
-causal_forest(X, Y, W, Y.hat = NULL, W.hat = NULL, sample.fraction = 0.5,
-  mtry = NULL, num.trees = 2000, num.threads = NULL,
-  min.node.size = NULL, honesty = TRUE, honesty.fraction = NULL,
-  ci.group.size = 2, alpha = NULL, imbalance.penalty = NULL,
-  stabilize.splits = TRUE, compute.oob.predictions = TRUE, seed = NULL,
-  clusters = NULL, samples_per_cluster = NULL, tune.parameters = FALSE,
+causal_forest(X, Y, W, Y.hat = NULL, W.hat = NULL,
+  sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
+  num.threads = NULL, min.node.size = NULL, honesty = TRUE,
+  honesty.fraction = NULL, ci.group.size = 2, alpha = NULL,
+  imbalance.penalty = NULL, stabilize.splits = TRUE,
+  compute.oob.predictions = TRUE, seed = NULL, clusters = NULL,
+  samples_per_cluster = NULL, tune.parameters = FALSE,
   num.fit.trees = 200, num.fit.reps = 50, num.optimize.reps = 1000)
 }
 \arguments{
@@ -67,8 +68,13 @@ determining the imbalance of a split (experimental).}
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
 \item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
-each cluster. Must be less than the size of the smallest cluster. If set to NULL
-software will set this value to the size of the smallest cluster.#'}
+each cluster when training a tree. If NULL, we set samples_per_cluster to the size
+of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+the whole cluster is used every time the cluster is drawn. Note that
+clusters with less than samples_per_cluster observations get relatively
+smaller weight than others in training the forest, i.e., the contribution
+of a given cluster to the final forest scales with the minimum of
+the number of observations in the cluster and samples_per_cluster.}
 
 \item{tune.parameters}{If true, NULL parameters are tuned by cross-validation; if false
 NULL parameters are set to defaults.}

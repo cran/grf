@@ -5,9 +5,9 @@
 \title{Predict with a regression forest}
 \usage{
 \method{predict}{regression_forest}(object, newdata = NULL,
-  linear.correction.variables = NULL, ll.lambda = 0.01,
-  tune.lambda = FALSE, lambda.path = NULL, ll.ridge.type = "standardized",
-  num.threads = NULL, estimate.variance = FALSE, ...)
+  linear.correction.variables = NULL, ll.lambda = NULL,
+  ll.weight.penalty = FALSE, num.threads = NULL,
+  estimate.variance = FALSE, ...)
 }
 \arguments{
 \item{object}{The trained forest.}
@@ -25,12 +25,8 @@ prediction considerably. Defaults to NULL.}
 
 \item{ll.lambda}{Ridge penalty for local linear predictions}
 
-\item{tune.lambda}{Optional self-tuning for ridge penalty lambda. Defaults to FALSE.}
-
-\item{lambda.path}{Optional list of lambdas to use for cross-validation, used if tune.lambda is TRUE.}
-
-\item{ll.ridge.type}{Option to standardize ridge penalty by covariance ("standardized"),
-or penalize all covariates equally ("identity").}
+\item{ll.weight.penalty}{Option to standardize ridge penalty by covariance (TRUE),
+or penalize all covariates equally (FALSE). Defaults to FALSE.}
 
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}

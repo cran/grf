@@ -41,6 +41,12 @@ This last estimand is recommended by Li, Morgan, and Zaslavsky (JASA, 2017)
 in case of poor overlap (i.e., when the propensities e(x) may be very close
 to 0 or 1), as it doesn't involve dividing by estimated propensities.
 }
+\details{
+If clusters are specified, then each cluster gets equal weight. For example,
+if there are 10 clusters with 1 unit each and per-cluster ATE = 1, and there
+are 10 clusters with 19 units each and per-cluster ATE = 0, then the overall
+ATE is 0.5 (not 0.05).
+}
 \examples{
 \dontrun{
 # Train a causal forest.

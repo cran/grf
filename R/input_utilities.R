@@ -98,12 +98,10 @@ validate_samples_per_cluster <- function(samples_per_cluster, clusters) {
   }
   cluster_size_counts <- table(clusters)
   min_size <- unname(cluster_size_counts[order(cluster_size_counts)][1])
-  # Check for whether this number is too small?
   if (is.null(samples_per_cluster)) {
     samples_per_cluster <- min_size
-  } else if (samples_per_cluster > min_size) {
-    stop(paste("Smallest cluster has", min_size, "observations",
-         "samples_per_cluster of", samples_per_cluster, "is too large."))
+  } else if (samples_per_cluster <= 0) {
+    stop("samples_per_cluster must be positive")
   }
   samples_per_cluster
 }
@@ -129,8 +127,8 @@ validate_ll_vars <- function(linear.correction.variables, num.cols){
   if (is.null(linear.correction.variables)) {
     linear.correction.variables = 1:num.cols
   }
-  if (min(linear.correction.variables) < 0) {
-    stop("Linear correction variables must take non-negative values.")
+  if (min(linear.correction.variables) < 1) {
+    stop("Linear correction variables must take positive integer values.")
   } else if (max(linear.correction.variables) > num.cols) {
     stop("Invalid range of correction variables.")
   } else if (!is.vector(linear.correction.variables) | !all(linear.correction.variables == floor(linear.correction.variables))) {

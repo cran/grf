@@ -4,13 +4,13 @@
 \alias{instrumental_forest}
 \title{Intrumental forest}
 \usage{
-instrumental_forest(X, Y, W, Z, Y.hat = NULL, W.hat = NULL, Z.hat = NULL,
-  sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
-  num.threads = NULL, min.node.size = NULL, honesty = TRUE,
-  honesty.fraction = NULL, ci.group.size = 2, reduced.form.weight = 0,
-  alpha = 0.05, imbalance.penalty = 0, stabilize.splits = TRUE,
-  compute.oob.predictions = TRUE, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL)
+instrumental_forest(X, Y, W, Z, Y.hat = NULL, W.hat = NULL,
+  Z.hat = NULL, sample.fraction = 0.5, mtry = NULL,
+  num.trees = 2000, num.threads = NULL, min.node.size = NULL,
+  honesty = TRUE, honesty.fraction = NULL, ci.group.size = 2,
+  reduced.form.weight = 0, alpha = 0.05, imbalance.penalty = 0,
+  stabilize.splits = TRUE, compute.oob.predictions = TRUE,
+  seed = NULL, clusters = NULL, samples_per_cluster = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the instrumental regression.}
@@ -75,8 +75,13 @@ determining the imbalance of a split (experimental).}
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
 \item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
-each cluster. Must be less than the size of the smallest cluster. If set to NULL
-software will set this value to the size of the smallest cluster.}
+each cluster when training a tree. If NULL, we set samples_per_cluster to the size
+of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+the whole cluster is used every time the cluster is drawn. Note that
+clusters with less than samples_per_cluster observations get relatively
+smaller weight than others in training the forest, i.e., the contribution
+of a given cluster to the final forest scales with the minimum of
+the number of observations in the cluster and samples_per_cluster.}
 }
 \value{
 A trained instrumental forest object.
