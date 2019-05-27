@@ -24,25 +24,22 @@ class ForestPredictors {
 public:
   static ForestPredictor custom_predictor(uint num_threads);
 
-  static ForestPredictor instrumental_predictor(uint num_threads,
-                                                uint ci_group_size);
+  static ForestPredictor instrumental_predictor(uint num_threads);
 
   static ForestPredictor quantile_predictor(uint num_threads,
                                             const std::vector<double>& quantiles);
 
-  static ForestPredictor regression_predictor(uint num_threads,
-                                              uint ci_group_size);
+  static ForestPredictor regression_predictor(uint num_threads);
 
-  static ForestPredictor local_linear_predictor(uint num_threads,
-                                                uint ci_group_size,
-                                                const Data* original_data,
-                                                const Data* test_data,
+  static ForestPredictor ll_regression_predictor(uint num_threads,
                                                 std::vector<double> lambdas,
-                                                bool weighted_penalty,
+                                                bool weight_penalty,
                                                 std::vector<size_t> linear_correction_variables);
 
-private:
-  static uint get_num_threads(uint provided_num_threads);
+  static ForestPredictor ll_causal_predictor(uint num_threads,
+                                             std::vector<double> lambdas,
+                                             bool weight_penalty,
+                                             std::vector<size_t> linear_correction_variables);
 };
 
 

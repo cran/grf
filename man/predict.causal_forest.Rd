@@ -5,15 +5,29 @@
 \title{Predict with a causal forest}
 \usage{
 \method{predict}{causal_forest}(object, newdata = NULL,
-  num.threads = NULL, estimate.variance = FALSE, ...)
+  linear.correction.variables = NULL, ll.lambda = 0.1,
+  ll.weight.penalty = FALSE, num.threads = NULL,
+  estimate.variance = FALSE, ...)
 }
 \arguments{
 \item{object}{The trained forest.}
 
-\item{newdata}{Points at which predictions should be made. If NULL,
-makes out-of-bag predictions on the training set instead
-(i.e., provides predictions at Xi using only trees that did
-not use the i-th training example).}
+\item{newdata}{Points at which predictions should be made. If NULL, makes out-of-bag
+predictions on the training set instead (i.e., provides predictions at
+Xi using only trees that did not use the i-th training example). Note
+that this matrix should have the number of columns as the training
+matrix, and that the columns must appear in the same order.}
+
+\item{linear.correction.variables}{Optional subset of indexes for variables to be used in local
+linear prediction. If NULL, standard GRF prediction is used. Otherwise,
+we run a locally weighted linear regression on the included variables.
+Please note that this is a beta feature still in development, and may slow down
+prediction considerably. Defaults to NULL.}
+
+\item{ll.lambda}{Ridge penalty for local linear predictions}
+
+\item{ll.weight.penalty}{Option to standardize ridge penalty by covariance (TRUE),
+or penalize all covariates equally (FALSE). Penalizes equally by default.}
 
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
@@ -24,7 +38,19 @@ automatically selects an appropriate amount.}
 \item{...}{Additional arguments (currently ignored).}
 }
 \value{
-Vector of predictions, along with (optional) variance estimates.
+Vector of predictions, along with estimates of the error and
+        (optionally) its variance estimates. Column 'predictions' contains estimates
+        of the conditional average treatent effect (CATE). The square-root of
+        column 'variance.estimates' is the standard error of CATE.
+        For out-of-bag estimates, we also output the following error measures.
+        First, column 'debiased.error' contains estimates of the 'R-loss' criterion,
+        (See Nie and Wager 2017 for a justification). Second, column 'excess.error'
+        contains jackknife estimates of the Monte-carlo error (Wager, Hastie, Efron 2014),
+        a measure of how unstable estimates are if we grow forests of the same size
+        on the same data set. The sum of 'debiased.error' and 'excess.error' is the raw error
+        attained by the current forest, and 'debiased.error' alone is an estimate of the error
+        attained by a forest with an infinite number of trees. We recommend that users grow
+        enough forests to make the 'excess.error' negligible.
 }
 \description{
 Gets estimates of tau(x) using a trained causal forest.

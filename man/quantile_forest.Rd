@@ -6,10 +6,10 @@
 \usage{
 quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9),
   regression.splitting = FALSE, sample.fraction = 0.5, mtry = NULL,
-  num.trees = 2000, num.threads = NULL, min.node.size = NULL,
-  honesty = TRUE, honesty.fraction = NULL, alpha = 0.05,
-  imbalance.penalty = 0, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL)
+  num.trees = 2000, min.node.size = NULL, honesty = TRUE,
+  honesty.fraction = NULL, alpha = 0.05, imbalance.penalty = 0,
+  clusters = NULL, samples.per.cluster = NULL, num.threads = NULL,
+  seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the quantile regression.}
@@ -33,34 +33,34 @@ further be cut by a factor of honesty.fraction.}
 confidence intervals generally requires more trees than
 getting accurate predictions.}
 
-\item{num.threads}{Number of threads used in training. If set to NULL, the software
-automatically selects an appropriate amount.}
-
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
 with size smaller than min.node.size can occur, as in the original randomForest package.}
 
 \item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
 
-\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
-to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
+to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
 honesty.fraction = NULL), half of the data will be used for determining splits}
 
 \item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
 
 \item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
 
-\item{seed}{The seed for the C++ random number generator.}
-
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
-\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
-each cluster when training a tree. If NULL, we set samples_per_cluster to the size
-of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+\item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
+each cluster when training a tree. If NULL, we set samples.per.cluster to the size
+of the smallest cluster. If some clusters are smaller than samples.per.cluster,
 the whole cluster is used every time the cluster is drawn. Note that
-clusters with less than samples_per_cluster observations get relatively
+clusters with less than samples.per.cluster observations get relatively
 smaller weight than others in training the forest, i.e., the contribution
 of a given cluster to the final forest scales with the minimum of
-the number of observations in the cluster and samples_per_cluster.}
+the number of observations in the cluster and samples.per.cluster.}
+
+\item{num.threads}{Number of threads used in training. By default, the number of threads is set
+to the maximum hardware concurrency.}
+
+\item{seed}{The seed of the C++ random number generator.}
 }
 \value{
 A trained quantile forest object.

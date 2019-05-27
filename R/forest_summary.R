@@ -1,5 +1,5 @@
 #' Omnibus evaluation of the quality of the random forest estimates via calibration.
-#' 
+#'
 #' Test calibration of the forest. Computes the best linear fit of the target
 #' estimand using the forest prediction (on held-out data) as well as the mean
 #' forest prediction as the sole two regressors. A coefficient of 1 for
@@ -8,7 +8,7 @@
 #' that the forest has captured heterogeneity in the underlying signal.
 #' The p-value of the `differential.forest.prediction` coefficient
 #' also acts as an omnibus test for the presence of heterogeneity: If the coefficient
-#' is significantly different from 0, then we can reject the null of
+#' is significantly greater than 0, then we can reject the null of
 #' no heterogeneity.
 #'
 #' @param forest The trained forest.
@@ -28,35 +28,26 @@
 #'
 #' @export
 test_calibration = function(forest) {
-  
-  cluster.se <- length(forest$clusters) > 0
-  if (!cluster.se) {
-    clusters <- 1:length(forest$predictions)
-    observation.weight <- rep(1, length(forest$predictions))
-  } else {
-    clusters <- forest$clusters
-    clust.factor <- factor(clusters)
-    inverse.counts <- 1/as.numeric(Matrix::colSums(Matrix::sparse.model.matrix(~ clust.factor + 0)))
-    observation.weight <- inverse.counts[as.numeric(clust.factor)]
-  }
-  
+
+  observation.weight = observation_weights(forest)
+  clusters = if(length(forest$clusters) > 0) { forest$clusters } else { 1:length(observation.weight) }
   if ("regression_forest" %in% class(forest)) {
     preds = predict(forest)$predictions
     mean.pred = weighted.mean(preds, observation.weight)
-    DF = data.frame(target = forest$Y.orig,
+    DF = data.frame(target = unname(forest$Y.orig),
                     mean.forest.prediction = mean.pred,
                     differential.forest.prediction = preds - mean.pred)
   } else if ("causal_forest" %in% class(forest)) {
     preds =  predict(forest)$predictions
     mean.pred = weighted.mean(preds, observation.weight)
-    DF = data.frame(target = forest$Y.orig - forest$Y.hat,
-                    mean.forest.prediction = (forest$W.orig - forest$W.hat) * mean.pred,
-                    differential.forest.prediction = (forest$W.orig - forest$W.hat) *
+    DF = data.frame(target = unname(forest$Y.orig - forest$Y.hat),
+                    mean.forest.prediction = unname(forest$W.orig - forest$W.hat) * mean.pred,
+                    differential.forest.prediction = unname(forest$W.orig - forest$W.hat) *
                       (preds - mean.pred))
   } else {
     stop("Calibration check not supported for this type of forest.")
   }
-  
+
   best.linear.predictor =
     lm(target ~ mean.forest.prediction + differential.forest.prediction + 0,
        weights = observation.weight,
@@ -68,8 +59,12 @@ test_calibration = function(forest) {
   attr(blp.summary, "method") <-
     paste("Best linear fit using forest predictions (on held-out data)",
           "as well as the mean forest prediction as regressors, along",
-          "with heteroskedasticity-robust (HC3) SEs",
+          "with one-sided heteroskedasticity-robust (HC3) SEs",
           sep="\n")
+  #convert to one-sided p-values
+  dimnames(blp.summary)[[2]][4] <- gsub("[|]", "", dimnames(blp.summary)[[2]][4])
+  blp.summary[,4] <- ifelse(blp.summary[,3]<0, 1-blp.summary[,4]/2,blp.summary[,4]/2)
   blp.summary
 
 }
+

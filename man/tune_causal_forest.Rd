@@ -4,12 +4,12 @@
 \alias{tune_causal_forest}
 \title{Causal forest tuning}
 \usage{
-tune_causal_forest(X, Y, W, num.fit.trees = 200, num.fit.reps = 50,
-  num.optimize.reps = 1000, min.node.size = NULL,
-  sample.fraction = 0.5, mtry = NULL, alpha = NULL,
-  imbalance.penalty = NULL, stabilize.splits = TRUE,
-  num.threads = NULL, honesty = TRUE, honesty.fraction = NULL,
-  seed = NULL, clusters = NULL, samples_per_cluster = NULL)
+tune_causal_forest(X, Y, W, Y.hat, W.hat, sample.weights = NULL,
+  num.fit.trees = 200, num.fit.reps = 50, num.optimize.reps = 1000,
+  min.node.size = NULL, sample.fraction = 0.5, mtry = NULL,
+  alpha = NULL, imbalance.penalty = NULL, stabilize.splits = TRUE,
+  honesty = TRUE, honesty.fraction = NULL, clusters = NULL,
+  samples.per.cluster = NULL, num.threads = NULL, seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the causal regression.}
@@ -17,6 +17,17 @@ tune_causal_forest(X, Y, W, num.fit.trees = 200, num.fit.reps = 50,
 \item{Y}{The outcome.}
 
 \item{W}{The treatment assignment (may be binary or real).}
+
+\item{Y.hat}{Estimates of the expected responses E[Y | Xi], marginalizing
+over treatment. See section 6.1.1 of the GRF paper for
+further discussion of this quantity.}
+
+\item{W.hat}{Estimates of the treatment propensities E[W | Xi].}
+
+\item{sample.weights}{Weights defining the population on which we want our estimator of tau(x) to perform well
+on average. If NULL, this is the population from which X1 ... Xn are sampled. Otherwise,
+it is a reweighted version, in which we observe Xi with probability proportional to
+sample.weights[i].}
 
 \item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model.}
 
@@ -41,22 +52,22 @@ further be cut by a factor of honesty.fraction.}
 \item{stabilize.splits}{Whether or not the treatment should be taken into account when
 determining the imbalance of a split (experimental).}
 
-\item{num.threads}{Number of threads used in training. If set to NULL, the software
-automatically selects an appropriate amount.}
-
 \item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
 
-\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
-to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
+to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
 honesty.fraction = NULL), half of the data will be used for determining splits}
-
-\item{seed}{The seed of the C++ random number generator.}
 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
-\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
+\item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
 each cluster. Must be less than the size of the smallest cluster. If set to NULL
 software will set this value to the size of the smallest cluster.#'}
+
+\item{num.threads}{Number of threads used in training. By default, the number of threads is set
+to the maximum hardware concurrency.}
+
+\item{seed}{The seed of the C++ random number generator.}
 }
 \value{
 A list consisting of the optimal parameter values ('params') along with their debiased
@@ -78,10 +89,13 @@ n = 50; p = 10
 X = matrix(rnorm(n*p), n, p)
 W = rbinom(n, 1, 0.5)
 Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
-params = tune_causal_forest(X, Y, W)$params
+Y.hat = predict(regression_forest(X, Y))$predictions
+W.hat = rep(0.5, n)
+params = tune_causal_forest(X, Y, W, Y.hat, W.hat)$params
 
 # Use these parameters to train a regression forest.
-tuned.forest = causal_forest(X, Y, W, num.trees = 1000,
+tuned.forest = causal_forest(X, Y, W,
+    Y.hat = Y.hat, W.hat = W.hat, num.trees = 1000,
     min.node.size = as.numeric(params["min.node.size"]),
     sample.fraction = as.numeric(params["sample.fraction"]),
     mtry = as.numeric(params["mtry"]),

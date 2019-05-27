@@ -5,20 +5,21 @@
 \title{Causal forest}
 \usage{
 causal_forest(X, Y, W, Y.hat = NULL, W.hat = NULL,
+  sample.weights = NULL, orthog.boosting = FALSE,
   sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
-  num.threads = NULL, min.node.size = NULL, honesty = TRUE,
-  honesty.fraction = NULL, ci.group.size = 2, alpha = NULL,
-  imbalance.penalty = NULL, stabilize.splits = TRUE,
-  compute.oob.predictions = TRUE, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL, tune.parameters = FALSE,
-  num.fit.trees = 200, num.fit.reps = 50, num.optimize.reps = 1000)
+  min.node.size = NULL, honesty = TRUE, honesty.fraction = NULL,
+  ci.group.size = 2, alpha = NULL, imbalance.penalty = NULL,
+  stabilize.splits = TRUE, clusters = NULL,
+  samples.per.cluster = NULL, tune.parameters = FALSE,
+  num.fit.trees = 200, num.fit.reps = 50, num.optimize.reps = 1000,
+  compute.oob.predictions = TRUE, num.threads = NULL, seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the causal regression.}
 
-\item{Y}{The outcome.}
+\item{Y}{The outcome (must be a numeric vector with no NAs).}
 
-\item{W}{The treatment assignment (may be binary or real).}
+\item{W}{The treatment assignment (must be a binary or real numeric vector with no NAs).}
 
 \item{Y.hat}{Estimates of the expected responses E[Y | Xi], marginalizing
 over treatment. If Y.hat = NULL, these are estimated using
@@ -27,6 +28,15 @@ further discussion of this quantity.}
 
 \item{W.hat}{Estimates of the treatment propensities E[W | Xi]. If W.hat = NULL,
 these are estimated using a separate regression forest.}
+
+\item{sample.weights}{(experimental) Weights given to each sample in estimation.
+If NULL, each observation receives the same weight.
+Note: To avoid introducing confounding, weights should be
+independent of the potential outcomes given X.}
+
+\item{orthog.boosting}{(experimental) If TRUE, then when Y.hat = NULL or W.hat is NULL,
+the missing quantities are estimated using boosted regression forests.
+The number of boosting steps is selected automatically.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
 Note: If honesty = TRUE, these subsamples will
@@ -38,16 +48,13 @@ further be cut by a factor of honesty.fraction.}
 confidence intervals generally requires more trees than
 getting accurate predictions.}
 
-\item{num.threads}{Number of threads used in training. If set to NULL, the software
-automatically selects an appropriate amount.}
-
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
 with size smaller than min.node.size can occur, as in the original randomForest package.}
 
 \item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
 
-\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
-to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
+to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
 honesty.fraction = NULL), half of the data will be used for determining splits}
 
 \item{ci.group.size}{The forest will grow ci.group.size trees on each subsample.
@@ -59,22 +66,18 @@ be at least 2.}
 \item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
 
 \item{stabilize.splits}{Whether or not the treatment should be taken into account when
-determining the imbalance of a split (experimental).}
-
-\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed.}
-
-\item{seed}{The seed of the C++ random number generator.}
+determining the imbalance of a split.}
 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
-\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
-each cluster when training a tree. If NULL, we set samples_per_cluster to the size
-of the smallest cluster. If some clusters are smaller than samples_per_cluster,
+\item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
+each cluster when training a tree. If NULL, we set samples.per.cluster to the size
+of the smallest cluster. If some clusters are smaller than samples.per.cluster,
 the whole cluster is used every time the cluster is drawn. Note that
-clusters with less than samples_per_cluster observations get relatively
+clusters with less than samples.per.cluster observations get relatively
 smaller weight than others in training the forest, i.e., the contribution
 of a given cluster to the final forest scales with the minimum of
-the number of observations in the cluster and samples_per_cluster.}
+the number of observations in the cluster and samples.per.cluster.}
 
 \item{tune.parameters}{If true, NULL parameters are tuned by cross-validation; if false
 NULL parameters are set to defaults.}
@@ -85,9 +88,17 @@ NULL parameters are set to defaults.}
 
 \item{num.optimize.reps}{The number of random parameter values considered when using the model
 to select the optimal parameters.}
+
+\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed.}
+
+\item{num.threads}{Number of threads used in training. By default, the number of threads is set
+to the maximum hardware concurrency.}
+
+\item{seed}{The seed of the C++ random number generator.}
 }
 \value{
-A trained causal forest object.
+A trained causal forest object. If tune.parameters is enabled,
+ then tuning information will be included through the `tuning.output` attribute.
 }
 \description{
 Trains a causal forest that can be used to estimate

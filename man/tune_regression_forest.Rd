@@ -4,17 +4,20 @@
 \alias{tune_regression_forest}
 \title{Regression forest tuning}
 \usage{
-tune_regression_forest(X, Y, num.fit.trees = 10, num.fit.reps = 100,
-  num.optimize.reps = 1000, min.node.size = NULL,
+tune_regression_forest(X, Y, sample.weights = NULL, num.fit.trees = 10,
+  num.fit.reps = 100, num.optimize.reps = 1000, min.node.size = NULL,
   sample.fraction = 0.5, mtry = NULL, alpha = NULL,
-  imbalance.penalty = NULL, num.threads = NULL, honesty = TRUE,
-  honesty.fraction = NULL, seed = NULL, clusters = NULL,
-  samples_per_cluster = NULL)
+  imbalance.penalty = NULL, honesty = TRUE, honesty.fraction = NULL,
+  clusters = NULL, samples.per.cluster = NULL, num.threads = NULL,
+  seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
 
 \item{Y}{The outcome.}
+
+\item{sample.weights}{(experimental) Weights given to an observation in estimation.
+If NULL, each observation is given the same weight.}
 
 \item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model.}
 
@@ -36,22 +39,22 @@ further be cut by a factor of honesty.fraction.}
 
 \item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
 
-\item{num.threads}{Number of threads used in training. If set to NULL, the software
-automatically selects an appropriate amount.}
-
 \item{honesty}{Whether or not honest splitting (i.e., sub-sample splitting) should be used.}
 
-\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds 
-to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and 
+\item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
+to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
 honesty.fraction = NULL), half of the data will be used for determining splits}
-
-\item{seed}{The seed for the C++ random number generator.}
 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
 
-\item{samples_per_cluster}{If sampling by cluster, the number of observations to be sampled from
+\item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
 each cluster. Must be less than the size of the smallest cluster. If set to NULL
 software will set this value to the size of the smallest cluster.}
+
+\item{num.threads}{Number of threads used in training. By default, the number of threads is set
+to the maximum hardware concurrency.}
+
+\item{seed}{The seed of the C++ random number generator.}
 }
 \value{
 A list consisting of the optimal parameter values ('params') along with their debiased
