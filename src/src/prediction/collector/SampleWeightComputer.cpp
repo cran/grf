@@ -19,6 +19,8 @@
 
 #include "tree/Tree.h"
 
+namespace grf {
+
 std::unordered_map<size_t, double> SampleWeightComputer::compute_weights(size_t sample,
                                                                          const Forest& forest,
                                                                          const std::vector<std::vector<size_t>>& leaf_nodes_by_tree,
@@ -34,7 +36,7 @@ std::unordered_map<size_t, double> SampleWeightComputer::compute_weights(size_t 
     const std::vector<size_t>& leaf_nodes = leaf_nodes_by_tree.at(tree_index);
     size_t node = leaf_nodes.at(sample);
 
-    std::shared_ptr<Tree> tree = forest.get_trees()[tree_index];
+    const std::unique_ptr<Tree>& tree = forest.get_trees()[tree_index];
     const std::vector<size_t>& samples = tree->get_leaf_samples()[node];
     if (!samples.empty()) {
       add_sample_weights(samples, weights_by_sample);
@@ -56,11 +58,13 @@ void SampleWeightComputer::add_sample_weights(const std::vector<size_t>& samples
 
 void SampleWeightComputer::normalize_sample_weights(std::unordered_map<size_t, double>& weights_by_sample) const {
   double total_weight = 0.0;
-  for (auto it = weights_by_sample.begin(); it != weights_by_sample.end(); ++it) {
-    total_weight += it->second;
+  for (const auto& entry : weights_by_sample) {
+    total_weight += entry.second;
   }
 
-  for (auto it = weights_by_sample.begin(); it != weights_by_sample.end(); ++it) {
-    it->second /= total_weight;
+  for (auto& entry : weights_by_sample) {
+    entry.second/= total_weight;
   }
 }
+
+} // namespace grf

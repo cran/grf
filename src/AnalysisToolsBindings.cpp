@@ -27,6 +27,8 @@
 
 #include "RcppUtilities.h"
 
+using namespace grf;
+
 // [[Rcpp::export]]
 Rcpp::NumericMatrix compute_split_frequencies(Rcpp::List forest_object,
                                               size_t max_depth) {
@@ -54,16 +56,16 @@ Eigen::SparseMatrix<double> compute_sample_weights(Rcpp::List forest_object,
                                                    Eigen::SparseMatrix<double> sparse_test_matrix,
                                                    unsigned int num_threads,
                                                    bool oob_prediction) {
-  Data* train_data = RcppUtilities::convert_data(train_matrix, sparse_train_matrix);
-  Data* data = RcppUtilities::convert_data(test_matrix, sparse_test_matrix);
+  std::unique_ptr<Data> train_data = RcppUtilities::convert_data(train_matrix, sparse_train_matrix);
+  std::unique_ptr<Data> data = RcppUtilities::convert_data(test_matrix, sparse_test_matrix);
   Forest forest = RcppUtilities::deserialize_forest(forest_object);
   num_threads = ForestOptions::validate_num_threads(num_threads);
 
   TreeTraverser tree_traverser(num_threads);
   SampleWeightComputer weight_computer;
 
-  std::vector<std::vector<size_t>> leaf_nodes_by_tree = tree_traverser.get_leaf_nodes(forest, data, oob_prediction);
-  std::vector<std::vector<bool>> trees_by_sample = tree_traverser.get_valid_trees_by_sample(forest, data, oob_prediction);
+  std::vector<std::vector<size_t>> leaf_nodes_by_tree = tree_traverser.get_leaf_nodes(forest, *data, oob_prediction);
+  std::vector<std::vector<bool>> trees_by_sample = tree_traverser.get_valid_trees_by_sample(forest, *data, oob_prediction);
 
   size_t num_samples = data->get_num_rows();
   size_t num_neighbors = train_data->get_num_rows();
@@ -79,9 +81,6 @@ Eigen::SparseMatrix<double> compute_sample_weights(Rcpp::List forest_object,
       result.insert(sample, neighbor) = weight;
     }
   }
-
-  delete train_data;
-  delete data;
 
   result.makeCompressed();
   return result;
@@ -118,7 +117,7 @@ Rcpp::List deserialize_tree(Rcpp::List forest_object,
     throw std::runtime_error("The provided tree index is not valid.");
   }
 
-  std::shared_ptr<Tree> tree = forest.get_trees().at(tree_index);
+  const std::unique_ptr<Tree>& tree = forest.get_trees().at(tree_index);
   const std::vector<std::vector<size_t>>& child_nodes = tree->get_child_nodes();
   const std::vector<std::vector<size_t>>& leaf_samples = tree->get_leaf_samples();
 
@@ -176,14 +175,14 @@ Rcpp::List deserialize_tree(Rcpp::List forest_object,
 
 // [[Rcpp::export]]
 Rcpp::List merge(const Rcpp::List forest_objects) {
- std::vector<std::shared_ptr<Forest>> forest_ptrs;
+ std::vector<Forest> forests;
 
  for (auto& forest_obj : forest_objects) {
    Forest deserialized_forest = RcppUtilities::deserialize_forest(forest_obj);
-   forest_ptrs.push_back(std::make_shared<Forest>(deserialized_forest)); 
+   forests.push_back(std::move(deserialized_forest));
  }
 
-  Forest big_forest = Forest::merge(forest_ptrs);
+  Forest big_forest = Forest::merge(forests);
   return RcppUtilities::serialize_forest(big_forest);
 }
  

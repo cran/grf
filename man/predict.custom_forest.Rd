@@ -30,15 +30,16 @@ Predict with a custom forest.
 \examples{
 \dontrun{
 # Train a custom forest.
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-Y = X[,1] * rnorm(n)
-c.forest = custom_forest(X, Y)
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+Y <- X[, 1] * rnorm(n)
+c.forest <- custom_forest(X, Y)
 
 # Predict using the forest.
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-c.pred = predict(c.forest, X.test)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+c.pred <- predict(c.forest, X.test)
 }
 
 }

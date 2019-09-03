@@ -11,7 +11,7 @@ tune_ll_regression_forest(forest, linear.correction.variables = NULL,
 \item{forest}{The forest used for prediction.}
 
 \item{linear.correction.variables}{Variables to use for local linear prediction. If left null,
-all variables are used.}
+all variables are used. Default is NULL.}
 
 \item{ll.weight.penalty}{Option to standardize ridge penalty by covariance (TRUE),
 or penalize all covariates equally (FALSE). Defaults to FALSE.}
@@ -30,14 +30,15 @@ Finds the optimal ridge penalty for local linear prediction.
 \examples{
 \dontrun{
 # Find the optimal tuning parameters.
-n = 500; p = 10
-X = matrix(rnorm(n*p), n, p)
-Y = X[,1] * rnorm(n)
-forest = regression_forest(X,Y)
-tuned.lambda = tune_ll_regression_forest(forest)
+n <- 500
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+Y <- X[, 1] * rnorm(n)
+forest <- regression_forest(X, Y)
+tuned.lambda <- tune_ll_regression_forest(forest)
 
 # Use this parameter to predict from a local linear forest.
-predictions = predict(forest, linear.correction.variables = 1:p, lambda = tuned.lambda)
+predictions <- predict(forest, linear.correction.variables = 1:p, lambda = tuned.lambda)
 }
 
 }

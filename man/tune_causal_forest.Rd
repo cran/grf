@@ -5,11 +5,12 @@
 \title{Causal forest tuning}
 \usage{
 tune_causal_forest(X, Y, W, Y.hat, W.hat, sample.weights = NULL,
-  num.fit.trees = 200, num.fit.reps = 50, num.optimize.reps = 1000,
+  num.fit.trees = 100, num.fit.reps = 50, num.optimize.reps = 1000,
   min.node.size = NULL, sample.fraction = 0.5, mtry = NULL,
   alpha = NULL, imbalance.penalty = NULL, stabilize.splits = TRUE,
-  honesty = TRUE, honesty.fraction = NULL, clusters = NULL,
-  samples.per.cluster = NULL, num.threads = NULL, seed = NULL)
+  honesty = TRUE, honesty.fraction = NULL, prune.empty.leaves = NULL,
+  clusters = NULL, samples.per.cluster = NULL, num.threads = NULL,
+  seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the causal regression.}
@@ -27,42 +28,51 @@ further discussion of this quantity.}
 \item{sample.weights}{Weights defining the population on which we want our estimator of tau(x) to perform well
 on average. If NULL, this is the population from which X1 ... Xn are sampled. Otherwise,
 it is a reweighted version, in which we observe Xi with probability proportional to
-sample.weights[i].}
+sample.weights[i]. Default is NULL.}
 
-\item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model.}
+\item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model. Default is 200.}
 
-\item{num.fit.reps}{The number of forests used to fit the tuning model.}
+\item{num.fit.reps}{The number of forests used to fit the tuning model. Default is 50.}
 
 \item{num.optimize.reps}{The number of random parameter values considered when using the model
-to select the optimal parameters.}
+to select the optimal parameters. Default is 1000.}
 
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
-with size smaller than min.node.size can occur, as in the original randomForest package.}
+with size smaller than min.node.size can occur, as in the original randomForest package.
+Default is 5.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
 Note: If honesty = TRUE, these subsamples will
-further be cut by a factor of honesty.fraction.}
+further be cut by a factor of honesty.fraction. Default is 0.5.}
 
-\item{mtry}{Number of variables tried for each split.}
+\item{mtry}{Number of variables tried for each split. Default is
+\eqn{\sqrt p + 20} where p is the number of variables.}
 
-\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.}
 
-\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.}
 
 \item{stabilize.splits}{Whether or not the treatment should be taken into account when
-determining the imbalance of a split (experimental).}
+determining the imbalance of a split (experimental). Default is TRUE.}
 
-\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
-honesty.fraction = NULL), half of the data will be used for determining splits}
+honesty.fraction = NULL), half of the data will be used for determining splits.
+Default is 0.5.}
 
-\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+\item{prune.empty.leaves}{(experimental) If true, prunes the estimation sample tree such that no leaves
+are empty. If false, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
+tree is skipped and does not contribute to the estimate). Setting this to false may improve performance on
+small/marginally powered data, but requires more trees. Only applies if honesty is enabled. Default is TRUE.}
+
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
+Default is NULL (ignored).}
 
 \item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
 each cluster. Must be less than the size of the smallest cluster. If set to NULL
-software will set this value to the size of the smallest cluster.#'}
+software will set this value to the size of the smallest cluster. Default is NULL.}
 
 \item{num.threads}{Number of threads used in training. By default, the number of threads is set
 to the maximum hardware concurrency.}
@@ -85,22 +95,24 @@ as fixed, and only sample.fraction and imbalance.penalty will be tuned.
 \examples{
 \dontrun{
 # Find the optimal tuning parameters.
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-W = rbinom(n, 1, 0.5)
-Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
-Y.hat = predict(regression_forest(X, Y))$predictions
-W.hat = rep(0.5, n)
-params = tune_causal_forest(X, Y, W, Y.hat, W.hat)$params
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+W <- rbinom(n, 1, 0.5)
+Y <- pmax(X[, 1], 0) * W + X[, 2] + pmin(X[, 3], 0) + rnorm(n)
+Y.hat <- predict(regression_forest(X, Y))$predictions
+W.hat <- rep(0.5, n)
+params <- tune_causal_forest(X, Y, W, Y.hat, W.hat)$params
 
 # Use these parameters to train a regression forest.
-tuned.forest = causal_forest(X, Y, W,
-    Y.hat = Y.hat, W.hat = W.hat, num.trees = 1000,
-    min.node.size = as.numeric(params["min.node.size"]),
-    sample.fraction = as.numeric(params["sample.fraction"]),
-    mtry = as.numeric(params["mtry"]),
-    alpha = as.numeric(params["alpha"]),
-    imbalance.penalty = as.numeric(params["imbalance.penalty"])
+tuned.forest <- causal_forest(X, Y, W,
+  Y.hat = Y.hat, W.hat = W.hat, num.trees = 1000,
+  min.node.size = as.numeric(params["min.node.size"]),
+  sample.fraction = as.numeric(params["sample.fraction"]),
+  mtry = as.numeric(params["mtry"]),
+  alpha = as.numeric(params["alpha"]),
+  imbalance.penalty = as.numeric(params["imbalance.penalty"])
+)
 }
 
 }

@@ -13,9 +13,11 @@
  #-------------------------------------------------------------------------------*/
 
 #include <algorithm>
-#include <unordered_map>
+#include <random>
 
 #include "RandomSampler.h"
+
+namespace grf {
 
 RandomSampler::RandomSampler(uint seed,
                              const SamplingOptions& options) :
@@ -52,7 +54,7 @@ void RandomSampler::subsample(const std::vector<size_t>& samples,
                               double sample_fraction,
                               std::vector<size_t>& subsamples) {
   std::vector<size_t> shuffled_sample(samples);
-  std::shuffle(shuffled_sample.begin(), shuffled_sample.end(), random_number_generator);
+  nonstd::shuffle(shuffled_sample.begin(), shuffled_sample.end(), random_number_generator);
 
   uint subsample_size = (uint) std::ceil(samples.size() * sample_fraction);
   subsamples.resize(subsample_size);
@@ -66,7 +68,7 @@ void RandomSampler::subsample(const std::vector<size_t>& samples,
                               std::vector<size_t>& subsamples,
                               std::vector<size_t>& oob_samples) {
   std::vector<size_t> shuffled_sample(samples);
-  std::shuffle(shuffled_sample.begin(), shuffled_sample.end(), random_number_generator);
+  nonstd::shuffle(shuffled_sample.begin(), shuffled_sample.end(), random_number_generator);
 
   size_t subsample_size = (size_t) std::ceil(samples.size() * sample_fraction);
   subsamples.resize(subsample_size);
@@ -84,7 +86,7 @@ void RandomSampler::subsample_with_size(const std::vector<size_t>& samples,
                                         size_t subsample_size,
                                         std::vector<size_t>& subsamples) {
   std::vector<size_t> shuffled_sample(samples);
-  std::shuffle(shuffled_sample.begin(), shuffled_sample.end(), random_number_generator);
+  nonstd::shuffle(shuffled_sample.begin(), shuffled_sample.end(), random_number_generator);
 
   subsamples.resize(subsample_size);
   std::copy(shuffled_sample.begin(),
@@ -99,7 +101,7 @@ void RandomSampler::sample_from_clusters(const std::vector<size_t>& clusters,
   } else {
     const std::vector<std::vector<size_t>>& samples_by_cluster = options.get_clusters();
     for (size_t cluster : clusters) {
-      const std::vector<size_t>& cluster_samples = samples_by_cluster.at(cluster);
+      const std::vector<size_t>& cluster_samples = samples_by_cluster[cluster];
 
       // Draw samples_per_cluster observations from each cluster. If the cluster is
       // smaller than the samples_per_cluster parameter, just use the whole cluster.
@@ -120,7 +122,7 @@ void RandomSampler::get_samples_in_clusters(const std::vector<size_t>& clusters,
     samples = clusters;
   } else {
     for (size_t cluster : clusters) {
-      const std::vector<size_t>& cluster_samples = options.get_clusters().at(cluster);
+      const std::vector<size_t>& cluster_samples = options.get_clusters()[cluster];
       samples.insert(samples.end(), cluster_samples.begin(), cluster_samples.end());
     }
   }
@@ -133,7 +135,7 @@ void RandomSampler::shuffle_and_split(std::vector<size_t>& samples,
 
   // Fill with 0..n_all-1 and shuffle
   std::iota(samples.begin(), samples.end(), 0);
-  std::shuffle(samples.begin(), samples.end(), random_number_generator);
+  nonstd::shuffle(samples.begin(), samples.end(), random_number_generator);
 
   samples.resize(size);
 }
@@ -153,13 +155,13 @@ void RandomSampler::draw_simple(std::vector<size_t>& result,
                                 size_t max,
                                 const std::set<size_t>& skip,
                                 size_t num_samples) {
-  result.reserve(num_samples);
+  result.resize(num_samples);
 
   // Set all to not selected
   std::vector<bool> temp;
   temp.resize(max, false);
 
-  std::uniform_int_distribution<size_t> unif_dist(0, max - 1 - skip.size());
+  nonstd::uniform_int_distribution<size_t> unif_dist(0, max - 1 - skip.size());
   for (size_t i = 0; i < num_samples; ++i) {
     size_t draw;
     do {
@@ -171,7 +173,7 @@ void RandomSampler::draw_simple(std::vector<size_t>& result,
       }
     } while (temp[draw]);
     temp[draw] = true;
-    result.push_back(draw);
+    result[i] = draw;
   }
 }
 
@@ -190,38 +192,39 @@ void RandomSampler::draw_fisher_yates(std::vector<size_t>& result,
   );
 
   // Draw without replacement using Fisher Yates algorithm
-  for (size_t i = result.size() - 1; i > 0; --i) {
-    std::uniform_int_distribution<size_t> distribution(0, i);
-    size_t j = distribution(random_number_generator);
+  nonstd::uniform_real_distribution<double> distribution(0.0, 1.0);
+  for (size_t i = 0; i < num_samples; ++i) {
+    size_t j = i + distribution(random_number_generator) * (max - skip.size() - i);
     std::swap(result[i], result[j]);
   }
 
-  // Retain only num_samples
-  result.erase(result.begin() + num_samples, result.end());
+  result.resize(num_samples);
 }
 
 void RandomSampler::draw_weighted(std::vector<size_t>& result,
                                   size_t max,
                                   size_t num_samples,
                                   const std::vector<double>& weights) {
-  result.reserve(num_samples);
+  result.resize(num_samples);
 
   // Set all to not selected
   std::vector<bool> temp;
   temp.resize(max + 1, false);
 
-  std::discrete_distribution<> weighted_dist(weights.begin(), weights.end());
+  nonstd::discrete_distribution<> weighted_dist(weights.begin(), weights.end());
   for (size_t i = 0; i < num_samples; ++i) {
     size_t draw;
     do {
       draw = weighted_dist(random_number_generator);
     } while (temp[draw]);
     temp[draw] = true;
-    result.push_back(draw);
+    result[i] = draw;
   }
 }
 
 size_t RandomSampler::sample_poisson(size_t mean) {
-  std::poisson_distribution<size_t> distribution(mean);
+  nonstd::poisson_distribution<size_t> distribution(mean);
   return distribution(random_number_generator);
 }
+
+} // namespace grf

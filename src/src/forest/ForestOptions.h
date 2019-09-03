@@ -23,6 +23,7 @@
 #include "sampling/SamplingOptions.h"
 #include "tree/TreeOptions.h"
 
+namespace grf {
 
 class ForestOptions {
 public:
@@ -33,6 +34,7 @@ public:
                 uint min_node_size,
                 bool honesty,
                 double honesty_fraction,
+                bool prune_empty_leaves,
                 double alpha,
                 double imbalance_penalty,
                 uint num_threads,
@@ -64,5 +66,6 @@ private:
   uint random_seed;
 };
 
+} // namespace grf
 
 #endif //GRF_FORESTOPTIONS_H

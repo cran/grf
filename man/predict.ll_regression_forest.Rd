@@ -46,18 +46,19 @@ Gets estimates of E[Y|X=x] using a trained regression forest.
 \examples{
 \dontrun{
 # Train the forest.
-n = 50; p = 5
-X = matrix(rnorm(n*p), n, p)
-Y = X[,1] * rnorm(n)
-forest = ll_regression_forest(X, Y)
+n <- 50
+p <- 5
+X <- matrix(rnorm(n * p), n, p)
+Y <- X[, 1] * rnorm(n)
+forest <- ll_regression_forest(X, Y)
 
 # Predict using the forest.
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-predictions = predict(forest, X.test)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+predictions <- predict(forest, X.test)
 
 # Predict on out-of-bag training samples.
-predictions.oob = predict(forest)
+predictions.oob <- predict(forest)
 }
 
 }

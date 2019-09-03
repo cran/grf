@@ -15,19 +15,22 @@
   along with grf. If not, see <http://www.gnu.org/licenses/>.
  #-------------------------------------------------------------------------------*/
 
-#ifndef GRF_BOOTSTRAPSAMPLER_H
-#define GRF_BOOTSTRAPSAMPLER_H
+#ifndef GRF_RANDOMSAMPLER_H
+#define GRF_RANDOMSAMPLER_H
 
 
 #include "commons/globals.h"
 #include "commons/utility.h"
 #include "SamplingOptions.h"
+#include "random/random.hpp"
+#include "random/algorithm.hpp"
 
 #include <cstddef>
 #include <random>
 #include <set>
 #include <vector>
-#include <unordered_map>
+
+namespace grf {
 
 class RandomSampler {
 public:
@@ -155,5 +158,6 @@ private:
   std::mt19937_64 random_number_generator;
 };
 
+} // namespace grf
 
-#endif //GRF_BOOTSTRAPSAMPLER_H
+#endif //GRF_RANDOMSAMPLER_H

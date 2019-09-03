@@ -19,7 +19,6 @@
 #define GRF_TREE_H_
 
 #include <vector>
-#include <random>
 #include <iostream>
 
 #include "commons/globals.h"
@@ -27,6 +26,8 @@
 #include "sampling/RandomSampler.h"
 #include "prediction/PredictionValues.h"
 #include "splitting/SplittingRule.h"
+
+namespace grf {
 
 class Tree {
 public:
@@ -48,8 +49,8 @@ public:
    * vector's length will be equal to the total number of test samples, and the index for each
    * requested sample ID will contain the corresponding node ID. All other values will be 0.
    */
-  std::vector<size_t> find_leaf_nodes(const Data* data,
-                                      const std::vector<size_t>& samples);
+  std::vector<size_t> find_leaf_nodes(const Data& data,
+                                      const std::vector<size_t>& samples) const;
 
   /**
    * Given test data and a vector indicating which samples to consider, recurses
@@ -63,8 +64,8 @@ public:
    * vector's length will be equal to the total number of test samples, and the index for each
    * requested sample ID will contain the corresponding node ID. All other values will be 0.
    */
-  std::vector<size_t> find_leaf_nodes(const Data* data,
-                                      const std::vector<bool>& valid_samples);
+  std::vector<size_t> find_leaf_nodes(const Data& data,
+                                      const std::vector<bool>& valid_samples) const;
   /**
    * Removes all empty leaf nodes.
    *
@@ -78,49 +79,49 @@ public:
    * The ID of the root node for this tree. Note that this is usually 0, but may not always
    * be as the top of the tree can be pruned.
    */
-  size_t get_root_node();
+  size_t get_root_node() const;
 
   /**
    * A vector containing two vectors: the first gives the ID of the left child for every
    * node, and the second gives the ID of the right child. If a node is a leaf, the entries
    * for both the left and right children will be '0'.
    */
-  const std::vector<std::vector<size_t>>& get_child_nodes();
+  const std::vector<std::vector<size_t>>& get_child_nodes() const;
 
   /**
    * Specifies the samples that each node contains. Note that only leaf nodes will contain
    * a non-empty vector of sample IDs.
    */
-  const std::vector<std::vector<size_t>>& get_leaf_samples();
+  const std::vector<std::vector<size_t>>& get_leaf_samples() const;
 
   /**
    * For each split, the ID of the variable that was chosen to split on.
    */
-  const std::vector<size_t>& get_split_vars();
+  const std::vector<size_t>& get_split_vars() const;
 
   /**
    * For each split, the value of the variable that was chosen to split on.
    */
-  const std::vector<double>& get_split_values();
+  const std::vector<double>& get_split_values() const;
 
   /**
    * The sample IDs that were not drawn in creating this tree. For honest trees,
    * this excludes both samples that went into growing the tree, as well as samples
    * used to repopulate the leaves.
    */
-  const std::vector<size_t>& get_drawn_samples();
+  const std::vector<size_t>& get_drawn_samples() const;
 
   /**
    * Optional summary values about the samples in each leaf. Note that this will only
    * be non-empty if the tree was trained with an 'optimized' prediction strategy.
    */
-  const PredictionValues& get_prediction_values();
+  const PredictionValues& get_prediction_values() const;
 
   /**
    * Given a node ID, returns true if the node represents a leaf in this tree (in
    * particular, the node has no children).
    */
-  bool is_leaf(size_t node);
+  bool is_leaf(size_t node) const;
 
   /**
    * Sets the contents of this tree's leaf nodes. Please see
@@ -134,17 +135,11 @@ public:
    */
   void set_prediction_values(const PredictionValues& prediction_values);
 
-  /**
-   * Empties out all internal data in this tree. Used to reduce memory
-   * usage when destructively iterating through a {@link Forest} object.
-   */
-  void clear();
-
 private:
-  size_t find_leaf_node(const Data* data,
-                        size_t sample);
+  size_t find_leaf_node(const Data& data,
+                        size_t sample) const;
   void prune_node(size_t& node);
-  bool is_empty_leaf(size_t node);
+  bool is_empty_leaf(size_t node) const;
 
   size_t root_node;
   std::vector<std::vector<size_t>> child_nodes;
@@ -156,5 +151,7 @@ private:
 
   PredictionValues prediction_values;
 };
+
+} // namespace grf
 
 #endif /* GRF_TREE_H_ */

@@ -16,7 +16,7 @@ allowed to differ across forests.}
 \item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed.
 Note that even if OOB predictions have already been precomputed for the forests in 'forest_list',
 those predictions are not used. Instead, a new set of oob predictions is computed anew using the
-larger forest.}
+larger forest. Default is TRUE.}
 }
 \value{
 A single forest containing all the trees in each forest in the input list.
@@ -27,14 +27,15 @@ Merges a list of forests that were grown using the same data into one large fore
 \examples{
 \dontrun{
 # Train standard regression forests
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-Y = X[,1] * rnorm(n)
-r.forest1 = regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
-r.forest2 = regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+Y <- X[, 1] * rnorm(n)
+r.forest1 <- regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
+r.forest2 <- regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
 
 # Join the forests together. The resulting forest will contain 200 trees.
-big_rf = merge_forests(list(r.forest1, r.forest2))
+big_rf <- merge_forests(list(r.forest1, r.forest2))
 }
 
 }

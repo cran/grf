@@ -18,35 +18,49 @@
 #'     contain examples from the second subsample that was used to 'repopulate' the tree (J2 in the
 #'     notation of the paper).
 #'
-#' @examples \dontrun{
+#' @examples
+#' \dontrun{
 #' # Train a quantile forest.
-#' n = 50; p = 10
-#' X = matrix(rnorm(n*p), n, p)
-#' Y = X[,1] * rnorm(n)
-#' q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+#' n <- 50
+#' p <- 10
+#' X <- matrix(rnorm(n * p), n, p)
+#' Y <- X[, 1] * rnorm(n)
+#' q.forest <- quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9))
 #'
 #' # Examine a particular tree.
-#' q.tree = get_tree(q.forest, 3)
+#' q.tree <- get_tree(q.forest, 3)
 #' q.tree$nodes
 #' }
 #'
 #' @export
-get_tree = function(forest, index) {
-	if (index < 1 || index > forest[["_num_trees"]]) {
-		stop(paste("The provided index,", index, "is not valid."))
-	}
+get_tree <- function(forest, index) {
+  if (index < 1 || index > forest[["_num_trees"]]) {
+    stop(paste("The provided index,", index, "is not valid."))
+  }
 
-	tree = deserialize_tree(forest, index)
-	class(tree) = "grf_tree"
+  tree <- deserialize_tree(forest, index)
+  class(tree) <- "grf_tree"
 
-	columns = colnames(forest$X.orig)
-	indices = 1:ncol(forest$X.orig)
-	tree$columns  = sapply(indices, function(i) {
-		if (!is.null(columns) & length(columns[i]) > 0) columns[i]
-		else paste("X", i, sep=".")
-	})
+  columns <- colnames(forest$X.orig)
+  indices <- 1:ncol(forest$X.orig)
+  tree$columns <- sapply(indices, function(i) {
+    if (!is.null(columns) & length(columns[i]) > 0) {
+      columns[i]
+    } else {
+      paste("X", i, sep = ".")
+    }
+  })
 
-	tree
+  # for each node, calculate the leaf stats
+  tree$nodes <- lapply(tree$nodes, function(node) {
+    if (node$is_leaf) {
+      node$leaf_stats <- leaf_stats(forest, node$samples)
+    }
+    node
+  })
+
+
+  tree
 }
 
 #' Calculate which features the forest split on at each depth.
@@ -57,22 +71,24 @@ get_tree = function(forest, index) {
 #' @return A matrix of split depth by feature index, where each value
 #' is the number of times the feature was split on at that depth.
 #'
-#' @examples \dontrun{
+#' @examples
+#' \dontrun{
 #' # Train a quantile forest.
-#' n = 50; p = 10
-#' X = matrix(rnorm(n*p), n, p)
-#' Y = X[,1] * rnorm(n)
-#' q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+#' n <- 50
+#' p <- 10
+#' X <- matrix(rnorm(n * p), n, p)
+#' Y <- X[, 1] * rnorm(n)
+#' q.forest <- quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9))
 #'
 #' # Calculate the split frequencies for this forest.
 #' split_frequencies(q.forest)
 #' }
 #'
 #' @export
-split_frequencies = function(forest, max.depth=4) {
-  raw = compute_split_frequencies(forest, max.depth)
-  feature.indices = 1:ncol(forest$X.orig)
-  raw[,feature.indices, drop = FALSE]
+split_frequencies <- function(forest, max.depth = 4) {
+  raw <- compute_split_frequencies(forest, max.depth)
+  feature.indices <- 1:ncol(forest$X.orig)
+  raw[, feature.indices, drop = FALSE]
 }
 
 #' Calculate a simple measure of 'importance' for each feature.
@@ -83,22 +99,24 @@ split_frequencies = function(forest, max.depth=4) {
 #'
 #' @return A list specifying an 'importance value' for each feature.
 #'
-#' @examples \dontrun{
+#' @examples
+#' \dontrun{
 #' # Train a quantile forest.
-#' n = 50; p = 10
-#' X = matrix(rnorm(n*p), n, p)
-#' Y = X[,1] * rnorm(n)
-#' q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+#' n <- 50
+#' p <- 10
+#' X <- matrix(rnorm(n * p), n, p)
+#' Y <- X[, 1] * rnorm(n)
+#' q.forest <- quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9))
 #'
 #' # Calculate the 'importance' of each feature.
 #' variable_importance(q.forest)
 #' }
 #'
 #' @export
-variable_importance = function(forest, decay.exponent=2, max.depth=4) {
+variable_importance <- function(forest, decay.exponent = 2, max.depth = 4) {
   split.freq <- split_frequencies(forest, max.depth)
   split.freq <- split.freq / pmax(1L, rowSums(split.freq))
-  weight <- seq_len(nrow(split.freq)) ^ -decay.exponent
+  weight <- seq_len(nrow(split.freq))^-decay.exponent
   t(split.freq) %*% weight / sum(weight)
 }
 
@@ -118,31 +136,95 @@ variable_importance = function(forest, decay.exponent=2, max.depth=4) {
 #' @return A sparse matrix where each row represents a test sample, and each column is a sample in the
 #'         training data. The value at (i, j) gives the weight of training sample j for test sample i.
 #'
-#' @examples \dontrun{
-#'  p = 10
-#'  n = 100
-#'  X = matrix(2 * runif(n * p) - 1, n, p)
-#'  Y = (X[,1] > 0) + 2 * rnorm(n)
-#'  rrf = regression_forest(X, Y, mtry=p)
-#'  sample.weights.oob = get_sample_weights(rrf)
+#' @examples
+#' \dontrun{
+#' p <- 10
+#' n <- 100
+#' X <- matrix(2 * runif(n * p) - 1, n, p)
+#' Y <- (X[, 1] > 0) + 2 * rnorm(n)
+#' rrf <- regression_forest(X, Y, mtry = p)
+#' sample.weights.oob <- get_sample_weights(rrf)
 #'
-#'  n.test = 15
-#'  X.test = matrix(2 * runif(n.test * p) - 1, n.test, p)
-#'  sample.weights = get_sample_weights(rrf, X.test)
+#' n.test <- 15
+#' X.test <- matrix(2 * runif(n.test * p) - 1, n.test, p)
+#' sample.weights <- get_sample_weights(rrf, X.test)
 #' }
 #'
 #' @export
-get_sample_weights = function(forest, newdata = NULL, num.threads=NULL) {
+get_sample_weights <- function(forest, newdata = NULL, num.threads = NULL) {
   num.threads <- validate_num_threads(num.threads)
 
   forest.short <- forest[-which(names(forest) == "X.orig")]
   train.data <- create_data_matrices(forest[["X.orig"]])
-  
+
   if (!is.null(newdata)) {
     data <- create_data_matrices(newdata)
-    compute_weights(forest.short, train.data$default, train.data$sparse,
-        data$default, data$sparse, num.threads)
+    compute_weights(
+      forest.short, train.data$default, train.data$sparse,
+      data$default, data$sparse, num.threads
+    )
   } else {
     compute_weights_oob(forest.short, train.data$default, train.data$sparse, num.threads)
   }
+}
+
+leaf_stats <- function(forest, samples) UseMethod("leaf_stats")
+
+#' A default leaf_stats for forests classes without a leaf_stats method
+#' that always returns NULL.
+#' @param forest Any forest
+#' @param samples The samples to include in the calculations.
+#' @param ... Additional arguments (currently ignored).
+#'
+#' @return NULL
+#'
+#' @method leaf_stats default
+leaf_stats.default <- function(forest, samples, ...){
+  return(NULL)
+}
+
+#' Calculate summary stats given a set of samples for regression forests.
+#' @param forest The GRF forest
+#' @param samples The samples to include in the calculations.
+#' @param ... Additional arguments (currently ignored).
+#'
+#' @return A named vector containing summary stats
+#'
+#' @method leaf_stats regression_forest
+leaf_stats.regression_forest <- function(forest, samples, ...){
+  leaf_stats <- c()
+  leaf_stats["avg_Y"] <- round(mean(forest$Y.orig[samples]), 2)
+  return(leaf_stats)
+}
+
+#' Calculate summary stats given a set of samples for causal forests.
+#' @param forest The GRF forest
+#' @param samples The samples to include in the calculations.
+#' @param ... Additional arguments (currently ignored).
+#'
+#' @return A named vector containing summary stats
+#'
+#' @method leaf_stats causal_forest
+leaf_stats.causal_forest <- function(forest, samples, ...){
+  leaf_stats <- c()
+  leaf_stats["avg_Y"] <- round(mean(forest$Y.orig[samples]), 2)
+  leaf_stats["avg_W"] <- round(mean(forest$W.orig[samples]), 2)
+  return(leaf_stats)
+}
+
+#' Calculate summary stats given a set of samples for instrumental forests.
+#' @param forest The GRF forest
+#' @param samples The samples to include in the calculations.
+#' @param ... Additional arguments (currently ignored).
+#'
+#' @return A named vector containing summary stats
+#'
+#' @method leaf_stats instrumental_forest
+leaf_stats.instrumental_forest <- function(forest, samples, ...){
+
+  leaf_stats <- c()
+  leaf_stats["avg_Y"] <- round(mean(forest$Y.orig[samples]), 2)
+  leaf_stats["avg_W"] <- round(mean(forest$W.orig[samples]), 2)
+  leaf_stats["avg_Z"] <- round(mean(forest$Z.orig[samples]), 2)
+  return(leaf_stats)
 }

@@ -7,9 +7,9 @@
 instrumental_forest(X, Y, W, Z, Y.hat = NULL, W.hat = NULL,
   Z.hat = NULL, sample.weights = NULL, sample.fraction = 0.5,
   mtry = NULL, num.trees = 2000, min.node.size = NULL,
-  honesty = TRUE, honesty.fraction = NULL, ci.group.size = 2,
-  reduced.form.weight = 0, alpha = 0.05, imbalance.penalty = 0,
-  stabilize.splits = TRUE, clusters = NULL,
+  honesty = TRUE, honesty.fraction = NULL, prune.empty.leaves = NULL,
+  ci.group.size = 2, reduced.form.weight = 0, alpha = 0.05,
+  imbalance.penalty = 0, stabilize.splits = TRUE, clusters = NULL,
   samples.per.cluster = NULL, compute.oob.predictions = TRUE,
   num.threads = NULL, seed = NULL)
 }
@@ -24,52 +24,61 @@ instrumental_forest(X, Y, W, Z, Y.hat = NULL, W.hat = NULL,
 
 \item{Y.hat}{Estimates of the expected responses E[Y | Xi], marginalizing
 over treatment. If Y.hat = NULL, these are estimated using
-a separate regression forest.}
+a separate regression forest. Default is NULL.}
 
 \item{W.hat}{Estimates of the treatment propensities E[W | Xi]. If W.hat = NULL,
-these are estimated using a separate regression forest.}
+these are estimated using a separate regression forest. Default is NULL.}
 
 \item{Z.hat}{Estimates of the instrument propensities E[Z | Xi]. If Z.hat = NULL,
-these are estimated using a separate regression forest.}
+these are estimated using a separate regression forest. Default is NULL.}
 
 \item{sample.weights}{(experimental) Weights given to each observation in estimation.
-If NULL, each observation receives equal weight.}
+If NULL, each observation receives equal weight. Default is NULL.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
 Note: If honesty = TRUE, these subsamples will
-further be cut by a factor of honesty.fraction.}
+further be cut by a factor of honesty.fraction. Default is 0.5.}
 
-\item{mtry}{Number of variables tried for each split.}
+\item{mtry}{Number of variables tried for each split. Default is
+\eqn{\sqrt p + 20} where p is the number of variables.}
 
 \item{num.trees}{Number of trees grown in the forest. Note: Getting accurate
 confidence intervals generally requires more trees than
-getting accurate predictions.}
+getting accurate predictions. Default is 2000.}
 
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
-with size smaller than min.node.size can occur, as in the original randomForest package.}
+with size smaller than min.node.size can occur, as in the original randomForest package.
+Default is 5.}
 
-\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
-honesty.fraction = NULL), half of the data will be used for determining splits}
+honesty.fraction = NULL), half of the data will be used for determining splits.
+Default is 0.5.}
+
+\item{prune.empty.leaves}{(experimental) If true, prunes the estimation sample tree such that no leaves
+are empty. If false, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
+tree is skipped and does not contribute to the estimate). Setting this to false may improve performance on
+small/marginally powered data, but requires more trees. Only applies if honesty is enabled. Default is TRUE.}
 
 \item{ci.group.size}{The forst will grow ci.group.size trees on each subsample.
 In order to provide confidence intervals, ci.group.size must
-be at least 2.}
+be at least 2. Default is 2.}
 
 \item{reduced.form.weight}{Whether splits should be regularized towards a naive
 splitting criterion that ignores the instrument (and
 instead emulates a causal forest).}
 
-\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.}
 
-\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.}
 
 \item{stabilize.splits}{Whether or not the instrument should be taken into account when
-determining the imbalance of a split.}
+determining the imbalance of a split. Default is TRUE.}
 
-\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
+Default is NULL (ignored).}
 
 \item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
 each cluster when training a tree. If NULL, we set samples.per.cluster to the size
@@ -78,9 +87,9 @@ the whole cluster is used every time the cluster is drawn. Note that
 clusters with less than samples.per.cluster observations get relatively
 smaller weight than others in training the forest, i.e., the contribution
 of a given cluster to the final forest scales with the minimum of
-the number of observations in the cluster and samples.per.cluster.}
+the number of observations in the cluster and samples.per.cluster. Default is NULL.}
 
-\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed.}
+\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed. Default is TRUE.}
 
 \item{num.threads}{Number of threads used in training. By default, the number of threads is set
 to the maximum hardware concurrency.}

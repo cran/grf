@@ -9,25 +9,26 @@
 #' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed.
 #'        Note that even if OOB predictions have already been precomputed for the forests in 'forest_list',
 #'        those predictions are not used. Instead, a new set of oob predictions is computed anew using the
-#'        larger forest.
+#'        larger forest. Default is TRUE.
 #'
 #' @return A single forest containing all the trees in each forest in the input list.
 #'
-#' @examples \dontrun{
+#' @examples
+#' \dontrun{
 #' # Train standard regression forests
-#' n = 50; p = 10
-#' X = matrix(rnorm(n*p), n, p)
-#' Y = X[,1] * rnorm(n)
-#' r.forest1 = regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
-#' r.forest2 = regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
+#' n <- 50
+#' p <- 10
+#' X <- matrix(rnorm(n * p), n, p)
+#' Y <- X[, 1] * rnorm(n)
+#' r.forest1 <- regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
+#' r.forest2 <- regression_forest(X, Y, compute.oob.predictions = FALSE, num.trees = 100)
 #'
 #' # Join the forests together. The resulting forest will contain 200 trees.
-#' big_rf = merge_forests(list(r.forest1, r.forest2))
+#' big_rf <- merge_forests(list(r.forest1, r.forest2))
 #' }
 #'
 #' @export
-merge_forests <- function(forest_list, compute.oob.predictions=TRUE) {
-
+merge_forests <- function(forest_list, compute.oob.predictions = TRUE) {
   validate_forest_list(forest_list)
   first_forest <- forest_list[[1]]
 
@@ -37,9 +38,9 @@ merge_forests <- function(forest_list, compute.oob.predictions=TRUE) {
   class(big_forest) <- class(first_forest)
   for (name in names(first_forest)) {
     if (!startsWith(name, "_")
-        && name != "predictions"
-        && name != "debiased.error"
-        && name != "excess.error") {
+    && name != "predictions"
+    && name != "debiased.error"
+    && name != "excess.error") {
       big_forest[[name]] <- first_forest[[name]]
     }
   }
@@ -56,7 +57,6 @@ merge_forests <- function(forest_list, compute.oob.predictions=TRUE) {
 
 #' @importFrom methods is
 validate_forest_list <- function(forest_list) {
-
   if (length(forest_list) == 0) {
     stop("Length of argument 'forest_list' must be positive.")
   }
@@ -67,9 +67,11 @@ validate_forest_list <- function(forest_list) {
            Be sure to use 'list(forest1, forest2), not 'c(forest1, forest2)'.")
   }
 
-  classes <- unique(sapply(forest_list, class)[1,])
+  classes <- unique(sapply(forest_list, class)[1, ])
   if (length(classes) > 1) {
-    stop(paste("All forests in 'forest_list' must be of the same type, but we found:",
-               paste(classes, collapse=", ")))
+    stop(paste(
+      "All forests in 'forest_list' must be of the same type, but we found:",
+      paste(classes, collapse = ", ")
+    ))
   }
 }

@@ -15,11 +15,13 @@
   along with grf. If not, see <http://www.gnu.org/licenses/>.
  #-------------------------------------------------------------------------------*/
 
-#ifndef GRF_PREDICTIONRESULTS_H
-#define GRF_PREDICTIONRESULTS_H
+#ifndef GRF_PREDICTION_H
+#define GRF_PREDICTION_H
 
 #include <cstddef>
 #include <vector>
+
+namespace grf {
 
 class Prediction {
 public:
@@ -45,5 +47,6 @@ private:
   std::vector<double> excess_error_estimates;
 };
 
+} // namespace grf
 
-#endif //GRF_PREDICTIONRESULTS_H
+#endif //GRF_PREDICTION_H

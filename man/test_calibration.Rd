@@ -26,11 +26,12 @@ no heterogeneity.
 }
 \examples{
 \dontrun{
-n = 800; p = 5
-X = matrix(rnorm(n*p), n, p)
-W = rbinom(n, 1, 0.25 + 0.5 * (X[,1] > 0))
-Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
-forest = causal_forest(X, Y, W)
+n <- 800
+p <- 5
+X <- matrix(rnorm(n * p), n, p)
+W <- rbinom(n, 1, 0.25 + 0.5 * (X[, 1] > 0))
+Y <- pmax(X[, 1], 0) * W + X[, 2] + pmin(X[, 3], 0) + rnorm(n)
+forest <- causal_forest(X, Y, W)
 test_calibration(forest)
 }
 

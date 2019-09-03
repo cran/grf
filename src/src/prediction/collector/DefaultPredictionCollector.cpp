@@ -17,19 +17,21 @@
 
 #include "prediction/collector/DefaultPredictionCollector.h"
 
-DefaultPredictionCollector::DefaultPredictionCollector(std::shared_ptr<DefaultPredictionStrategy> strategy):
-    strategy(strategy) {}
+namespace grf {
+
+DefaultPredictionCollector::DefaultPredictionCollector(std::unique_ptr<DefaultPredictionStrategy> strategy):
+    strategy(std::move(strategy)) {}
 
 std::vector<Prediction> DefaultPredictionCollector::collect_predictions(
     const Forest& forest,
-    Data* train_data,
-    Data* data,
+    const Data& train_data,
+    const Data& data,
     const std::vector<std::vector<size_t>>& leaf_nodes_by_tree,
     const std::vector<std::vector<bool>>& valid_trees_by_sample,
     bool estimate_variance,
-    bool estimate_error) {
+    bool estimate_error) const {
 
-  size_t num_samples = data->get_num_rows();
+  size_t num_samples = data.get_num_rows();
   std::vector<Prediction> predictions;
   predictions.reserve(num_samples);
 
@@ -51,7 +53,7 @@ std::vector<Prediction> DefaultPredictionCollector::collect_predictions(
         const std::vector<size_t>& leaf_nodes = leaf_nodes_by_tree.at(tree_index);
         size_t node = leaf_nodes.at(sample);
 
-        std::shared_ptr<Tree> tree = forest.get_trees()[tree_index];
+        const std::unique_ptr<Tree>& tree = forest.get_trees()[tree_index];
         std::vector<std::vector<size_t>> leaf_samples = tree->get_leaf_samples();
         samples_by_tree.push_back(leaf_samples.at(node));
       }
@@ -70,10 +72,13 @@ std::vector<Prediction> DefaultPredictionCollector::collect_predictions(
   return predictions;
 }
 
-void DefaultPredictionCollector::validate_prediction(size_t sample, Prediction prediction) {
+void DefaultPredictionCollector::validate_prediction(size_t sample,
+                                                     const Prediction& prediction) const {
   size_t prediction_length = strategy->prediction_length();
   if (prediction.size() != prediction_length) {
     throw std::runtime_error("Prediction for sample " + std::to_string(sample) +
                              " did not have the expected length.");
   }
 }
+
+} // namespace grf

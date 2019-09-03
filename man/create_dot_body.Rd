@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{create_dot_body}
 \alias{create_dot_body}
-\title{Writes each node information 
+\title{Writes each node information
 If it is a leaf node: show it in different color, show number of samples, show leaf id
 If it is a non-leaf node: show its splitting variable and splitting value}
 \usage{
@@ -14,7 +14,8 @@ create_dot_body(tree, index = 1)
 \item{index}{the index of the current node}
 }
 \description{
-Writes each node information 
+Writes each node information
 If it is a leaf node: show it in different color, show number of samples, show leaf id
 If it is a non-leaf node: show its splitting variable and splitting value
 }
+\keyword{internal}

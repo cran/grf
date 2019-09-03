@@ -5,7 +5,7 @@
 \title{Predict with a causal forest}
 \usage{
 \method{predict}{causal_forest}(object, newdata = NULL,
-  linear.correction.variables = NULL, ll.lambda = 0.1,
+  linear.correction.variables = NULL, ll.lambda = NULL,
   ll.weight.penalty = FALSE, num.threads = NULL,
   estimate.variance = FALSE, ...)
 }
@@ -24,7 +24,7 @@ we run a locally weighted linear regression on the included variables.
 Please note that this is a beta feature still in development, and may slow down
 prediction considerably. Defaults to NULL.}
 
-\item{ll.lambda}{Ridge penalty for local linear predictions}
+\item{ll.lambda}{Ridge penalty for local linear predictions. Defaults to NULL and will be cross-validated.}
 
 \item{ll.weight.penalty}{Option to standardize ridge penalty by covariance (TRUE),
 or penalize all covariates equally (FALSE). Penalizes equally by default.}
@@ -58,23 +58,24 @@ Gets estimates of tau(x) using a trained causal forest.
 \examples{
 \dontrun{
 # Train a causal forest.
-n = 100; p = 10
-X = matrix(rnorm(n*p), n, p)
-W = rbinom(n, 1, 0.5)
-Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
-c.forest = causal_forest(X, Y, W)
+n <- 100
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+W <- rbinom(n, 1, 0.5)
+Y <- pmax(X[, 1], 0) * W + X[, 2] + pmin(X[, 3], 0) + rnorm(n)
+c.forest <- causal_forest(X, Y, W)
 
 # Predict using the forest.
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-c.pred = predict(c.forest, X.test)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+c.pred <- predict(c.forest, X.test)
 
 # Predict on out-of-bag training samples.
-c.pred = predict(c.forest)
+c.pred <- predict(c.forest)
 
 # Predict with confidence intervals; growing more trees is now recommended.
-c.forest = causal_forest(X, Y, W, num.trees = 500)
-c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+c.forest <- causal_forest(X, Y, W, num.trees = 500)
+c.pred <- predict(c.forest, X.test, estimate.variance = TRUE)
 }
 
 }

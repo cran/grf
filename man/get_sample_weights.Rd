@@ -28,16 +28,16 @@ input to a different analysis.
 }
 \examples{
 \dontrun{
- p = 10
- n = 100
- X = matrix(2 * runif(n * p) - 1, n, p)
- Y = (X[,1] > 0) + 2 * rnorm(n)
- rrf = regression_forest(X, Y, mtry=p)
- sample.weights.oob = get_sample_weights(rrf)
+p <- 10
+n <- 100
+X <- matrix(2 * runif(n * p) - 1, n, p)
+Y <- (X[, 1] > 0) + 2 * rnorm(n)
+rrf <- regression_forest(X, Y, mtry = p)
+sample.weights.oob <- get_sample_weights(rrf)
 
- n.test = 15
- X.test = matrix(2 * runif(n.test * p) - 1, n.test, p)
- sample.weights = get_sample_weights(rrf, X.test)
+n.test <- 15
+X.test <- matrix(2 * runif(n.test * p) - 1, n.test, p)
+sample.weights <- get_sample_weights(rrf, X.test)
 }
 
 }

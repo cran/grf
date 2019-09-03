@@ -16,3 +16,4 @@ Export a tree in DOT format.
 This function generates a GraphViz representation of the tree,
 which is then written into `dot_string`.
 }
+\keyword{internal}

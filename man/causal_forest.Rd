@@ -8,8 +8,8 @@ causal_forest(X, Y, W, Y.hat = NULL, W.hat = NULL,
   sample.weights = NULL, orthog.boosting = FALSE,
   sample.fraction = 0.5, mtry = NULL, num.trees = 2000,
   min.node.size = NULL, honesty = TRUE, honesty.fraction = NULL,
-  ci.group.size = 2, alpha = NULL, imbalance.penalty = NULL,
-  stabilize.splits = TRUE, clusters = NULL,
+  prune.empty.leaves = NULL, ci.group.size = 2, alpha = NULL,
+  imbalance.penalty = NULL, stabilize.splits = TRUE, clusters = NULL,
   samples.per.cluster = NULL, tune.parameters = FALSE,
   num.fit.trees = 200, num.fit.reps = 50, num.optimize.reps = 1000,
   compute.oob.predictions = TRUE, num.threads = NULL, seed = NULL)
@@ -24,51 +24,60 @@ causal_forest(X, Y, W, Y.hat = NULL, W.hat = NULL,
 \item{Y.hat}{Estimates of the expected responses E[Y | Xi], marginalizing
 over treatment. If Y.hat = NULL, these are estimated using
 a separate regression forest. See section 6.1.1 of the GRF paper for
-further discussion of this quantity.}
+further discussion of this quantity. Default is NULL.}
 
 \item{W.hat}{Estimates of the treatment propensities E[W | Xi]. If W.hat = NULL,
-these are estimated using a separate regression forest.}
+these are estimated using a separate regression forest. Default is NULL.}
 
 \item{sample.weights}{(experimental) Weights given to each sample in estimation.
 If NULL, each observation receives the same weight.
 Note: To avoid introducing confounding, weights should be
-independent of the potential outcomes given X.}
+independent of the potential outcomes given X. Default is NULL.}
 
 \item{orthog.boosting}{(experimental) If TRUE, then when Y.hat = NULL or W.hat is NULL,
 the missing quantities are estimated using boosted regression forests.
-The number of boosting steps is selected automatically.}
+The number of boosting steps is selected automatically. Default is FALSE.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
 Note: If honesty = TRUE, these subsamples will
-further be cut by a factor of honesty.fraction.}
+further be cut by a factor of honesty.fraction. Default is 0.5.}
 
-\item{mtry}{Number of variables tried for each split.}
+\item{mtry}{Number of variables tried for each split. Default is
+\eqn{\sqrt p + 20} where p is the number of variables.}
 
 \item{num.trees}{Number of trees grown in the forest. Note: Getting accurate
 confidence intervals generally requires more trees than
-getting accurate predictions.}
+getting accurate predictions. Default is 2000.}
 
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
-with size smaller than min.node.size can occur, as in the original randomForest package.}
+with size smaller than min.node.size can occur, as in the original randomForest package.
+Default is 5.}
 
-\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
-honesty.fraction = NULL), half of the data will be used for determining splits}
+honesty.fraction = NULL), half of the data will be used for determining splits.
+Default is 0.5.}
+
+\item{prune.empty.leaves}{(experimental) If true, prunes the estimation sample tree such that no leaves
+are empty. If false, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
+tree is skipped and does not contribute to the estimate). Setting this to false may improve performance on
+small/marginally powered data, but requires more trees. Only applies if honesty is enabled. Default is TRUE.}
 
 \item{ci.group.size}{The forest will grow ci.group.size trees on each subsample.
 In order to provide confidence intervals, ci.group.size must
-be at least 2.}
+be at least 2. Default is 2.}
 
-\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.}
 
-\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.}
 
 \item{stabilize.splits}{Whether or not the treatment should be taken into account when
-determining the imbalance of a split.}
+determining the imbalance of a split. Default is TRUE.}
 
-\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
+Default is NULL (ignored).}
 
 \item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
 each cluster when training a tree. If NULL, we set samples.per.cluster to the size
@@ -77,19 +86,19 @@ the whole cluster is used every time the cluster is drawn. Note that
 clusters with less than samples.per.cluster observations get relatively
 smaller weight than others in training the forest, i.e., the contribution
 of a given cluster to the final forest scales with the minimum of
-the number of observations in the cluster and samples.per.cluster.}
+the number of observations in the cluster and samples.per.cluster. Default is NULL.}
 
 \item{tune.parameters}{If true, NULL parameters are tuned by cross-validation; if false
-NULL parameters are set to defaults.}
+NULL parameters are set to defaults. Default is FALSE.}
 
-\item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model.}
+\item{num.fit.trees}{The number of trees in each 'mini forest' used to fit the tuning model. Default is 200.}
 
-\item{num.fit.reps}{The number of forests used to fit the tuning model.}
+\item{num.fit.reps}{The number of forests used to fit the tuning model. Default is 50.}
 
 \item{num.optimize.reps}{The number of random parameter values considered when using the model
-to select the optimal parameters.}
+to select the optimal parameters. Default is 1000.}
 
-\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed.}
+\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed. Default is TRUE.}
 
 \item{num.threads}{Number of threads used in training. By default, the number of threads is set
 to the maximum hardware concurrency.}
@@ -113,51 +122,54 @@ and interpret it as a treatment effect given unconfoundedness.
 \examples{
 \dontrun{
 # Train a causal forest.
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-W = rbinom(n, 1, 0.5)
-Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
-c.forest = causal_forest(X, Y, W)
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+W <- rbinom(n, 1, 0.5)
+Y <- pmax(X[, 1], 0) * W + X[, 2] + pmin(X[, 3], 0) + rnorm(n)
+c.forest <- causal_forest(X, Y, W)
 
 # Predict using the forest.
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-c.pred = predict(c.forest, X.test)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+c.pred <- predict(c.forest, X.test)
 
 # Predict on out-of-bag training samples.
-c.pred = predict(c.forest)
+c.pred <- predict(c.forest)
 
 # Predict with confidence intervals; growing more trees is now recommended.
-c.forest = causal_forest(X, Y, W, num.trees = 4000)
-c.pred = predict(c.forest, X.test, estimate.variance = TRUE)
+c.forest <- causal_forest(X, Y, W, num.trees = 4000)
+c.pred <- predict(c.forest, X.test, estimate.variance = TRUE)
 
 # In some examples, pre-fitting models for Y and W separately may
 # be helpful (e.g., if different models use different covariates).
 # In some applications, one may even want to get Y.hat and W.hat
 # using a completely different method (e.g., boosting).
-n = 2000; p = 20
-X = matrix(rnorm(n * p), n, p)
-TAU = 1 / (1 + exp(-X[, 3]))
-W = rbinom(n, 1, 1 / (1 + exp(-X[, 1] - X[, 2])))
-Y = pmax(X[, 2] + X[, 3], 0) + rowMeans(X[, 4:6]) / 2 + W * TAU + rnorm(n)
+n <- 2000
+p <- 20
+X <- matrix(rnorm(n * p), n, p)
+TAU <- 1 / (1 + exp(-X[, 3]))
+W <- rbinom(n, 1, 1 / (1 + exp(-X[, 1] - X[, 2])))
+Y <- pmax(X[, 2] + X[, 3], 0) + rowMeans(X[, 4:6]) / 2 + W * TAU + rnorm(n)
 
-forest.W = regression_forest(X, W, tune.parameters = TRUE)
-W.hat = predict(forest.W)$predictions
+forest.W <- regression_forest(X, W, tune.parameters = TRUE)
+W.hat <- predict(forest.W)$predictions
 
-forest.Y = regression_forest(X, Y, tune.parameters = TRUE)
-Y.hat = predict(forest.Y)$predictions
+forest.Y <- regression_forest(X, Y, tune.parameters = TRUE)
+Y.hat <- predict(forest.Y)$predictions
 
-forest.Y.varimp = variable_importance(forest.Y)
+forest.Y.varimp <- variable_importance(forest.Y)
 
 # Note: Forests may have a hard time when trained on very few variables
 # (e.g., ncol(X) = 1, 2, or 3). We recommend not being too aggressive
 # in selection.
-selected.vars = which(forest.Y.varimp / mean(forest.Y.varimp) > 0.2)
+selected.vars <- which(forest.Y.varimp / mean(forest.Y.varimp) > 0.2)
 
-tau.forest = causal_forest(X[,selected.vars], Y, W,
-                           W.hat = W.hat, Y.hat = Y.hat,
-                           tune.parameters = TRUE)
-tau.hat = predict(tau.forest)$predictions
+tau.forest <- causal_forest(X[, selected.vars], Y, W,
+  W.hat = W.hat, Y.hat = Y.hat,
+  tune.parameters = TRUE
+)
+tau.hat <- predict(tau.forest)$predictions
 }
 
 }

@@ -7,46 +7,55 @@
 quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9),
   regression.splitting = FALSE, sample.fraction = 0.5, mtry = NULL,
   num.trees = 2000, min.node.size = NULL, honesty = TRUE,
-  honesty.fraction = NULL, alpha = 0.05, imbalance.penalty = 0,
-  clusters = NULL, samples.per.cluster = NULL, num.threads = NULL,
-  seed = NULL)
+  honesty.fraction = NULL, prune.empty.leaves = NULL, alpha = 0.05,
+  imbalance.penalty = 0, clusters = NULL, samples.per.cluster = NULL,
+  num.threads = NULL, seed = NULL)
 }
 \arguments{
 \item{X}{The covariates used in the quantile regression.}
 
 \item{Y}{The outcome.}
 
-\item{quantiles}{Vector of quantiles used to calibrate the forest.}
+\item{quantiles}{Vector of quantiles used to calibrate the forest. Default is (0.1, 0.5, 0.9).}
 
 \item{regression.splitting}{Whether to use regression splits when growing trees instead
 of specialized splits based on the quantiles (the default).
 Setting this flag to true corresponds to the approach to
-quantile forests from Meinshausen (2006).}
+quantile forests from Meinshausen (2006). Default is FALSE.}
 
 \item{sample.fraction}{Fraction of the data used to build each tree.
 Note: If honesty = TRUE, these subsamples will
-further be cut by a factor of honesty.fraction.}
+further be cut by a factor of honesty.fraction. Default is 0.5.}
 
-\item{mtry}{Number of variables tried for each split.}
+\item{mtry}{Number of variables tried for each split. Default is
+\eqn{\sqrt p + 20} where p is the number of variables.}
 
 \item{num.trees}{Number of trees grown in the forest. Note: Getting accurate
 confidence intervals generally requires more trees than
-getting accurate predictions.}
+getting accurate predictions. Default is 2000.}
 
 \item{min.node.size}{A target for the minimum number of observations in each tree leaf. Note that nodes
-with size smaller than min.node.size can occur, as in the original randomForest package.}
+with size smaller than min.node.size can occur, as in the original randomForest package.
+Default is 5.}
 
-\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting).}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
-honesty.fraction = NULL), half of the data will be used for determining splits}
+honesty.fraction = NULL), half of the data will be used for determining splits.
+Default is 0.5.}
 
-\item{alpha}{A tuning parameter that controls the maximum imbalance of a split.}
+\item{prune.empty.leaves}{(experimental) If true, prunes the estimation sample tree such that no leaves
+are empty. If false, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
+tree is skipped and does not contribute to the estimate). Setting this to false may improve performance on
+small/marginally powered data, but requires more trees. Only applies if honesty is enabled. Default is TRUE.}
 
-\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized.}
+\item{alpha}{A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.}
 
-\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.}
+\item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.}
+
+\item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
+Default is NULL (ignored).}
 
 \item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
 each cluster when training a tree. If NULL, we set samples.per.cluster to the size
@@ -55,7 +64,7 @@ the whole cluster is used every time the cluster is drawn. Note that
 clusters with less than samples.per.cluster observations get relatively
 smaller weight than others in training the forest, i.e., the contribution
 of a given cluster to the final forest scales with the minimum of
-the number of observations in the cluster and samples.per.cluster.}
+the number of observations in the cluster and samples.per.cluster. Default is NULL.}
 
 \item{num.threads}{Number of threads used in training. By default, the number of threads is set
 to the maximum hardware concurrency.}
@@ -72,27 +81,28 @@ quantiles of the conditional distribution of Y given X = x.
 \examples{
 \dontrun{
 # Generate data.
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-Y = X[,1] * rnorm(n)
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+Y <- X[, 1] * rnorm(n)
 
 # Train a quantile forest.
-q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+q.forest <- quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9))
 
 # Make predictions.
-q.hat = predict(q.forest, X.test)
+q.hat <- predict(q.forest, X.test)
 
 # Make predictions for different quantiles than those used in training.
-q.hat = predict(q.forest, X.test, quantiles=c(0.1, 0.9))
+q.hat <- predict(q.forest, X.test, quantiles = c(0.1, 0.9))
 
 # Train a quantile forest using regression splitting instead of quantile-based
 # splits, emulating the approach in Meinshausen (2006).
-meins.forest = quantile_forest(X, Y, regression.splitting=TRUE)
+meins.forest <- quantile_forest(X, Y, regression.splitting = TRUE)
 
 # Make predictions for the desired quantiles.
-q.hat = predict(meins.forest, X.test, quantiles=c(0.1, 0.5, 0.9))
+q.hat <- predict(meins.forest, X.test, quantiles = c(0.1, 0.5, 0.9))
 }
 
 }

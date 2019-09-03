@@ -32,18 +32,19 @@ Gets estimates of the conditional quantiles of Y given X using a trained forest.
 \examples{
 \dontrun{
 # Train a quantile forest.
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-Y = X[,1] * rnorm(n)
-q.forest = quantile_forest(X, Y, quantiles=c(0.1, 0.5, 0.9))
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+Y <- X[, 1] * rnorm(n)
+q.forest <- quantile_forest(X, Y, quantiles = c(0.1, 0.5, 0.9))
 
 # Predict on out-of-bag training samples.
-q.pred = predict(q.forest)
+q.pred <- predict(q.forest)
 
 # Predict using the forest.
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-q.pred = predict(q.forest, X.test)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+q.pred <- predict(q.forest, X.test)
 }
 
 }

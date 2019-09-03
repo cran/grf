@@ -16,8 +16,8 @@ Xi using only trees that did not use the i-th training example). Note
 that this matrix should have the number of columns as the training
 matrix, and that the columns must appear in the same order}
 
-\item{boost.predict.steps}{Number of boosting iterations to use for prediction. If blank, uses the full number of steps
-for the object given}
+\item{boost.predict.steps}{Number of boosting iterations to use for prediction. If blank, uses the full number of
+steps for the object given}
 
 \item{num.threads}{the number of threads used in prediction}
 
@@ -32,19 +32,19 @@ Gets estimates of E[Y|X=x] using a trained regression forest.
 \examples{
 \dontrun{
 # Train a boosted regression forest.
-n = 50; p = 10
-X = matrix(rnorm(n*p), n, p)
-Y = X[,1] * rnorm(n)
-r.boosted.forest = boosted_regression_forest(X, Y)
+n <- 50
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+Y <- X[, 1] * rnorm(n)
+r.boosted.forest <- boosted_regression_forest(X, Y)
 
 # Predict using the forest.
-X.test = matrix(0, 101, p)
-X.test[,1] = seq(-2, 2, length.out = 101)
-r.pred = predict(r.boosted.forest, X.test)
+X.test <- matrix(0, 101, p)
+X.test[, 1] <- seq(-2, 2, length.out = 101)
+r.pred <- predict(r.boosted.forest, X.test)
 
 # Predict on out-of-bag training samples.
-r.pred = predict(r.boosted.forest)
-
+r.pred <- predict(r.boosted.forest)
 }
 
 }

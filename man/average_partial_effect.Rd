@@ -18,7 +18,7 @@ estimate the ATE. WARNING: For valid statistical performance,
 the subset should be defined only using features Xi, not using
 the treatment Wi or the outcome Yi.}
 
-\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x].}
+\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x]. Default is 500.}
 }
 \value{
 An estimate of the average partial effect, along with standard error.
@@ -38,14 +38,15 @@ APE is 0.5 (not 0.05).
 }
 \examples{
 \dontrun{
-n = 2000; p = 10
-X = matrix(rnorm(n*p), n, p)
-W = rbinom(n, 1, 1/(1 + exp(-X[,2]))) + rnorm(n)
-Y = pmax(X[,1], 0) * W + X[,2] + pmin(X[,3], 0) + rnorm(n)
-tau.forest = causal_forest(X, Y, W)
-tau.hat = predict(tau.forest)
+n <- 2000
+p <- 10
+X <- matrix(rnorm(n * p), n, p)
+W <- rbinom(n, 1, 1 / (1 + exp(-X[, 2]))) + rnorm(n)
+Y <- pmax(X[, 1], 0) * W + X[, 2] + pmin(X[, 3], 0) + rnorm(n)
+tau.forest <- causal_forest(X, Y, W)
+tau.hat <- predict(tau.forest)
 average_partial_effect(tau.forest)
-average_partial_effect(tau.forest, subset = X[,1] > 0)
+average_partial_effect(tau.forest, subset = X[, 1] > 0)
 }
 
 }
