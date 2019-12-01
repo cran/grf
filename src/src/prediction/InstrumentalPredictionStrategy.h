@@ -20,7 +20,7 @@
 
 
 #include <cstddef>
-#include <unordered_map>
+
 #include "commons/DefaultData.h"
 #include "prediction/Prediction.h"
 #include "prediction/OptimizedPredictionStrategy.h"
@@ -36,6 +36,7 @@ public:
   static const std::size_t INSTRUMENT;
   static const std::size_t OUTCOME_INSTRUMENT;
   static const std::size_t TREATMENT_INSTRUMENT;
+  static const std::size_t INSTRUMENT_INSTRUMENT;
 
   size_t prediction_value_length() const;
   PredictionValues precompute_prediction_values(

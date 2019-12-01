@@ -1,16 +1,18 @@
 validate_X <- function(X) {
-  if (inherits(X, "matrix") & !is.numeric(X)) {
+  if (inherits(X, c("matrix", "data.frame")) && !is.numeric(as.matrix(X))) {
     stop(paste(
       "The feature matrix X must be numeric. GRF does not",
       "currently support non-numeric features. If factor variables",
       "are required, we recommend one of the following: Either",
       "represent the factor with a 1-vs-all expansion,",
       "(e.g., using model.matrix(~. , data=X)), or then encode the factor",
-      "as a numeric via any natural ordering (e.g., if the factor is a month)."
+      "as a numeric via any natural ordering (e.g., if the factor is a month).",
+      "For more on GRF and categorical variables see the online vignette:",
+      "https://grf-labs.github.io/grf/articles/categorical_inputs.html"
     ))
   }
 
-  if (inherits(X, "Matrix") & !(inherits(X, "dgCMatrix"))) {
+  if (inherits(X, "Matrix") && !(inherits(X, "dgCMatrix"))) {
     stop("Currently only sparse data of class 'dgCMatrix' is supported.")
   }
 
@@ -43,17 +45,6 @@ validate_observations <- function(V, X) {
   V
 }
 
-validate_mtry <- function(mtry, X) {
-  if (is.null(mtry)) {
-    num.col <- ncol(X)
-    default <- ceiling(sqrt(num.col) + 20)
-    return(min(default, num.col))
-  } else if (!is.numeric(mtry) || mtry < 0) {
-    stop("Error: Invalid value for mtry")
-  }
-  mtry
-}
-
 validate_num_threads <- function(num.threads) {
   if (is.null(num.threads)) {
     num.threads <- 0
@@ -61,49 +52,6 @@ validate_num_threads <- function(num.threads) {
     stop("Error: Invalid value for num.threads")
   }
   num.threads
-}
-
-validate_min_node_size <- function(min.node.size) {
-  if (is.null(min.node.size)) {
-    min.node.size <- 5
-  } else if (!is.numeric(min.node.size) | min.node.size < 0) {
-    stop("Error: Invalid value for min.node.size")
-  }
-  min.node.size
-}
-
-validate_sample_fraction <- function(sample.fraction) {
-  if (is.null(sample.fraction)) {
-    sample.fraction <- 0.5
-  } else if (!is.numeric(sample.fraction) | sample.fraction <= 0 | sample.fraction > 1) {
-    stop("Error: Invalid value for sample.fraction. Please give a value in (0,1].")
-  }
-  sample.fraction
-}
-
-validate_alpha <- function(alpha) {
-  if (is.null(alpha)) {
-    alpha <- 0.05
-  } else if (!is.numeric(alpha) | alpha < 0 | alpha > 0.25) {
-    stop("Error: Invalid value for alpha. Please give a value in [0,0.25].")
-  }
-  alpha
-}
-
-validate_imbalance_penalty <- function(imbalance.penalty) {
-  if (is.null(imbalance.penalty)) {
-    imbalance.penalty <- 0.0
-  } else if (!is.numeric(imbalance.penalty) | imbalance.penalty < 0) {
-    stop("Error: Invalid value for alpha. Please give a non-negative value.")
-  }
-  imbalance.penalty
-}
-
-validate_seed <- function(seed) {
-  if (is.null(seed)) {
-    seed <- runif(1, 0, .Machine$integer.max)
-  }
-  seed
 }
 
 validate_clusters <- function(clusters, X) {
@@ -125,37 +73,23 @@ validate_clusters <- function(clusters, X) {
   clusters
 }
 
-validate_samples_per_cluster <- function(samples.per.cluster, clusters) {
+validate_equalize_cluster_weights <- function(equalize.cluster.weights, clusters, sample.weights) {
   if (is.null(clusters) || length(clusters) == 0) {
     return(0)
   }
   cluster_size_counts <- table(clusters)
-  min_size <- unname(cluster_size_counts[order(cluster_size_counts)][1])
-  if (is.null(samples.per.cluster)) {
-    samples.per.cluster <- min_size
-  } else if (samples.per.cluster <= 0) {
-    stop("samples.per.cluster must be positive")
-  }
-  samples.per.cluster
-}
-
-validate_honesty_fraction <- function(honesty.fraction, honesty) {
-  if (!honesty) {
-      return(0)
-  } else if (is.null(honesty.fraction)) {
-    return(0.5)
-  } else if (honesty.fraction > 0 && honesty.fraction < 1) {
-    return(honesty.fraction)
+  if (equalize.cluster.weights == TRUE) {
+    samples.per.cluster <- min(cluster_size_counts)
+    if (!is.null(sample.weights)) {
+      stop("If equalize.cluster.weights is TRUE, sample.weights must be NULL.")
+    }
+  } else if (equalize.cluster.weights == FALSE) {
+    samples.per.cluster <- max(cluster_size_counts)
   } else {
-    stop("honesty.fraction must be a positive real number less than 1.")
+    stop("equalize.cluster.weights must be either TRUE or FALSE.")
   }
-}
 
-validate_prune_empty_leaves <- function(prune.empty.leaves) {
-  if (is.null(prune.empty.leaves)) {
-    return(TRUE)
-  }
-  prune.empty.leaves
+  samples.per.cluster
 }
 
 validate_boost_error_reduction <- function(boost.error.reduction) {
@@ -220,32 +154,79 @@ validate_sample_weights <- function(sample.weights, X) {
 
 #' @importFrom Matrix Matrix cBind
 #' @importFrom methods new
-create_data_matrices <- function(X, ..., sample.weights = NULL) {
+create_data_matrices <- function(X, outcome = NULL, treatment = NULL,
+                                 instrument = NULL, sample.weights = FALSE) {
   default.data <- matrix(nrow = 0, ncol = 0)
   sparse.data <- new("dgCMatrix", Dim = c(0L, 0L))
-
-  if (inherits(X, "dgCMatrix") && ncol(X) > 1) {
-    sparse.data <- cbind(X, ..., sample.weights)
+  out <- list()
+  i <- 1
+  if (!is.null(outcome)) {
+    out[["outcome.index"]] <- ncol(X) + i
+  }
+  if (!is.null(treatment)) {
+    i <- i + 1
+    out[["treatment.index"]] <- ncol(X) + i
+  }
+  if (!is.null(instrument)) {
+    i <- i + 1
+    out[["instrument.index"]] <- ncol(X) + i
+  }
+  if (!isFALSE(sample.weights)) {
+    i <- i + 1
+    out[["sample.weight.index"]] <- ncol(X) + i
+    if (is.null(sample.weights)) {
+      out[["use.sample.weights"]] <- FALSE
+    } else {
+      out[["use.sample.weights"]] <- TRUE
+    }
   } else {
-    X <- as.matrix(X)
-    default.data <- as.matrix(cbind(X, ..., sample.weights))
+    sample.weights = NULL
   }
 
-  list(default = default.data, sparse = sparse.data)
+  if (inherits(X, "dgCMatrix") && ncol(X) > 1) {
+    sparse.data <- cbind(X, outcome, treatment, instrument, sample.weights)
+  } else {
+    X <- as.matrix(X)
+    default.data <- as.matrix(cbind(X, outcome, treatment, instrument, sample.weights))
+  }
+  out[["train.matrix"]] <- default.data
+  out[["sparse.train.matrix"]] <- sparse.data
+
+  out
 }
 
 observation_weights <- function(forest) {
-    sample.weights <- if (is.null(forest$sample.weights)) {
-        rep(1, length(forest$Y.orig))
+  # Case 1: No sample.weights
+  if (is.null(forest$sample.weights)) {
+    if (length(forest$clusters) == 0 || !forest$equalize.cluster.weights) {
+      raw.weights <- rep(1, length(forest$Y.orig))
     } else {
-        forest$sample.weights * length(forest$Y.orig) / sum(forest$sample.weights)
+      # If clustering with no sample.weights provided and equalize.cluster.weights = TRUE, then
+      # give each observation weight 1/cluster size, so that the total weight of each cluster is the same.
+      clust.factor <- factor(forest$clusters)
+      inverse.counts <- 1 / as.numeric(Matrix::colSums(Matrix::sparse.model.matrix(~ clust.factor + 0)))
+      raw.weights <- inverse.counts[as.numeric(clust.factor)]
     }
-    if (length(forest$clusters) == 0) {
-        observation.weight <- sample.weights
+  }
+
+  # Case 2: sample.weights provided
+  if (!is.null(forest$sample.weights)) {
+    if (length(forest$clusters) == 0 || !forest$equalize.cluster.weights) {
+      raw.weights <- forest$sample.weights
     } else {
-        clust.factor <- factor(forest$clusters)
-        inverse.counts <- 1 / as.numeric(Matrix::colSums(Matrix::sparse.model.matrix(~ clust.factor + 0)))
-        observation.weight <- sample.weights * inverse.counts[as.numeric(clust.factor)]
+      stop("Specifying non-null sample.weights is not allowed when equalize.cluster.weights = TRUE")
     }
-    observation.weight
+  }
+
+  return (raw.weights / sum(raw.weights))
+}
+
+# Call the grf Rcpp bindings (argument_names) with R argument.names
+#
+# All the bindings argument names (C++) have underscores: sample_weights, train_matrix, etc.
+# On the R side each variable name is written as sample.weights, train.matrix, etc.
+# This function simply replaces the underscores in the passed argument names with dots.
+do.call.rcpp = function(what, args, quote = FALSE, envir = parent.frame()) {
+  names(args) = gsub("\\.", "_", names(args))
+  do.call(what, args, quote, envir)
 }

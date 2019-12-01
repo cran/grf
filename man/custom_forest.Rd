@@ -4,11 +4,13 @@
 \alias{custom_forest}
 \title{Custom forest}
 \usage{
-custom_forest(X, Y, sample.fraction = 0.5, mtry = NULL,
-  num.trees = 2000, min.node.size = NULL, honesty = TRUE,
-  honesty.fraction = NULL, prune.empty.leaves = NULL, alpha = 0.05,
-  imbalance.penalty = 0, clusters = NULL, samples.per.cluster = NULL,
-  compute.oob.predictions = TRUE, num.threads = NULL, seed = NULL)
+custom_forest(X, Y, sample.fraction = 0.5,
+  mtry = min(ceiling(sqrt(ncol(X)) + 20), ncol(X)), num.trees = 2000,
+  min.node.size = 5, honesty = TRUE, honesty.fraction = 0.5,
+  honesty.prune.leaves = TRUE, alpha = 0.05, imbalance.penalty = 0,
+  clusters = NULL, equalize.cluster.weights = FALSE,
+  compute.oob.predictions = TRUE, num.threads = NULL, seed = runif(1,
+  0, .Machine$integer.max))
 }
 \arguments{
 \item{X}{The covariates used in the regression.}
@@ -30,17 +32,20 @@ getting accurate predictions. Default is 2000.}
 with size smaller than min.node.size can occur, as in the original randomForest package.
 Default is 5.}
 
-\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.}
+\item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.
+For a detailed description of honesty, honesty.fraction, honesty.prune.leaves, and recommendations for
+parameter tuning, see the grf
+\href{https://grf-labs.github.io/grf/REFERENCE.html#honesty-honesty-fraction-honesty-prune-leaves}{algorithm reference}.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
-to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
-honesty.fraction = NULL), half of the data will be used for determining splits.
-Default is 0.5.}
+to set J1 in the notation of the paper. Default is 0.5 (i.e. half of the data is used for
+determining splits).}
 
-\item{prune.empty.leaves}{(experimental) If true, prunes the estimation sample tree such that no leaves
-are empty. If false, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
-tree is skipped and does not contribute to the estimate). Setting this to false may improve performance on
-small/marginally powered data, but requires more trees. Only applies if honesty is enabled. Default is TRUE.}
+\item{honesty.prune.leaves}{If TRUE, prunes the estimation sample tree such that no leaves
+are empty. If FALSE, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
+tree is skipped and does not contribute to the estimate). Setting this to FALSE may improve performance on
+small/marginally powered data, but requires more trees (note: tuning does not adjust the number of trees).
+Only applies if honesty is enabled. Default is TRUE.}
 
 \item{alpha}{A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.}
 
@@ -49,14 +54,13 @@ small/marginally powered data, but requires more trees. Only applies if honesty 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
 Default is NULL (ignored).}
 
-\item{samples.per.cluster}{If sampling by cluster, the number of observations to be sampled from
-each cluster when training a tree. If NULL, we set samples.per.cluster to the size
-of the smallest cluster. If some clusters are smaller than samples.per.cluster,
-the whole cluster is used every time the cluster is drawn. Note that
-clusters with less than samples.per.cluster observations get relatively
-smaller weight than others in training the forest, i.e., the contribution
-of a given cluster to the final forest scales with the minimum of
-the number of observations in the cluster and samples.per.cluster. Default is NULL.}
+\item{equalize.cluster.weights}{If FALSE, each unit is given the same weight (so that bigger
+clusters get more weight). If TRUE, each cluster is given equal weight in the forest. In this case,
+during training, each tree uses the same number of observations from each drawn cluster: If the
+smallest cluster has K units, then when we sample a cluster during training, we only give a random
+K elements of the cluster to the tree-growing procedure. When estimating average treatment effects,
+each observation is given weight 1/cluster size, so that the total weight of each cluster is the
+same.}
 
 \item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed. Default is TRUE.}
 

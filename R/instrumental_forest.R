@@ -18,48 +18,61 @@
 #'              these are estimated using a separate regression forest. Default is NULL.
 #' @param Z.hat Estimates of the instrument propensities E[Z | Xi]. If Z.hat = NULL,
 #'              these are estimated using a separate regression forest. Default is NULL.
+#' @param num.trees Number of trees grown in the forest. Note: Getting accurate
+#'                  confidence intervals generally requires more trees than
+#'                  getting accurate predictions. Default is 2000.
 #' @param sample.weights (experimental) Weights given to each observation in estimation.
 #'                       If NULL, each observation receives equal weight. Default is NULL.
+#' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
+#'  Default is NULL (ignored).
+#' @param equalize.cluster.weights If FALSE, each unit is given the same weight (so that bigger
+#'  clusters get more weight). If TRUE, each cluster is given equal weight in the forest. In this case,
+#'  during training, each tree uses the same number of observations from each drawn cluster: If the
+#'  smallest cluster has K units, then when we sample a cluster during training, we only give a random
+#'  K elements of the cluster to the tree-growing procedure. When estimating average treatment effects,
+#'  each observation is given weight 1/cluster size, so that the total weight of each cluster is the
+#'  same. Note that, if this argument is FALSE, sample weights may also be directly adjusted via the
+#'  sample.weights argument. If this argument is TRUE, sample.weights must be set to NULL. Default is
+#'  FALSE.
 #' @param sample.fraction Fraction of the data used to build each tree.
 #'                        Note: If honesty = TRUE, these subsamples will
 #'                        further be cut by a factor of honesty.fraction. Default is 0.5.
 #' @param mtry Number of variables tried for each split. Default is
 #'             \eqn{\sqrt p + 20} where p is the number of variables.
-#' @param num.trees Number of trees grown in the forest. Note: Getting accurate
-#'                  confidence intervals generally requires more trees than
-#'                  getting accurate predictions. Default is 2000.
 #' @param min.node.size A target for the minimum number of observations in each tree leaf. Note that nodes
 #'                      with size smaller than min.node.size can occur, as in the original randomForest package.
 #'                      Default is 5.
 #' @param honesty Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.
+#'  For a detailed description of honesty, honesty.fraction, honesty.prune.leaves, and recommendations for
+#'  parameter tuning, see the grf
+#'  \href{https://grf-labs.github.io/grf/REFERENCE.html#honesty-honesty-fraction-honesty-prune-leaves}{algorithm reference}.
 #' @param honesty.fraction The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
-#'                         to set J1 in the notation of the paper. When using the defaults (honesty = TRUE and
-#'                         honesty.fraction = NULL), half of the data will be used for determining splits.
-#'                         Default is 0.5.
-#' @param prune.empty.leaves (experimental) If true, prunes the estimation sample tree such that no leaves
-#'  are empty. If false, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
-#'  tree is skipped and does not contribute to the estimate). Setting this to false may improve performance on
-#'  small/marginally powered data, but requires more trees. Only applies if honesty is enabled. Default is TRUE.
+#'                         to set J1 in the notation of the paper. Default is 0.5 (i.e. half of the data is used for
+#'                         determining splits).
+#' @param honesty.prune.leaves If TRUE, prunes the estimation sample tree such that no leaves
+#'  are empty. If FALSE, keep the same tree as determined in the splits sample (if an empty leave is encountered, that
+#'  tree is skipped and does not contribute to the estimate). Setting this to FALSE may improve performance on
+#'  small/marginally powered data, but requires more trees (note: tuning does not adjust the number of trees).
+#'  Only applies if honesty is enabled. Default is TRUE.
+#' @param alpha A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.
+#' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.
+#' @param stabilize.splits Whether or not the instrument should be taken into account when
+#'                         determining the imbalance of a split. Default is TRUE.
 #' @param ci.group.size The forst will grow ci.group.size trees on each subsample.
 #'                      In order to provide confidence intervals, ci.group.size must
 #'                      be at least 2. Default is 2.
 #' @param reduced.form.weight Whether splits should be regularized towards a naive
 #'                            splitting criterion that ignores the instrument (and
 #'                            instead emulates a causal forest).
-#' @param alpha A tuning parameter that controls the maximum imbalance of a split. Default is 0.05.
-#' @param imbalance.penalty A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.
-#' @param stabilize.splits Whether or not the instrument should be taken into account when
-#'                         determining the imbalance of a split. Default is TRUE.
-#' @param clusters Vector of integers or factors specifying which cluster each observation corresponds to.
-#'                 Default is NULL (ignored).
-#' @param samples.per.cluster If sampling by cluster, the number of observations to be sampled from
-#'                            each cluster when training a tree. If NULL, we set samples.per.cluster to the size
-#'                            of the smallest cluster. If some clusters are smaller than samples.per.cluster,
-#'                            the whole cluster is used every time the cluster is drawn. Note that
-#'                            clusters with less than samples.per.cluster observations get relatively
-#'                            smaller weight than others in training the forest, i.e., the contribution
-#'                            of a given cluster to the final forest scales with the minimum of
-#'                            the number of observations in the cluster and samples.per.cluster. Default is NULL.
+#' @param tune.parameters (experimental) A vector of parameter names to tune.
+#'  If "all": all tunable parameters are tuned by cross-validation. The following parameters are
+#'  tunable: ("sample.fraction", "mtry", "min.node.size", "honesty.fraction",
+#'   "honesty.prune.leaves", "alpha", "imbalance.penalty"). If honesty is FALSE the honesty.* parameters are not tuned.
+#'  Default is "none" (no parameters are tuned).
+#' @param tune.num.trees The number of trees in each 'mini forest' used to fit the tuning model. Default is 200.
+#' @param tune.num.reps The number of forests used to fit the tuning model. Default is 50.
+#' @param tune.num.draws The number of random parameter values considered when using the model
+#'                          to select the optimal parameters. Default is 1000.
 #' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed. Default is TRUE.
 #' @param num.threads Number of threads used in training. By default, the number of threads is set
 #'                    to the maximum hardware concurrency.
@@ -71,51 +84,64 @@ instrumental_forest <- function(X, Y, W, Z,
                                 Y.hat = NULL,
                                 W.hat = NULL,
                                 Z.hat = NULL,
-                                sample.weights = NULL,
-                                sample.fraction = 0.5,
-                                mtry = NULL,
                                 num.trees = 2000,
-                                min.node.size = NULL,
+                                sample.weights = NULL,
+                                clusters = NULL,
+                                equalize.cluster.weights = FALSE,
+                                sample.fraction = 0.5,
+                                mtry = min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                                min.node.size = 5,
                                 honesty = TRUE,
-                                honesty.fraction = NULL,
-                                prune.empty.leaves = NULL,
-                                ci.group.size = 2,
-                                reduced.form.weight = 0,
+                                honesty.fraction = 0.5,
+                                honesty.prune.leaves = TRUE,
                                 alpha = 0.05,
                                 imbalance.penalty = 0.0,
                                 stabilize.splits = TRUE,
-                                clusters = NULL,
-                                samples.per.cluster = NULL,
+                                ci.group.size = 2,
+                                reduced.form.weight = 0,
+                                tune.parameters = "none",
+                                tune.num.trees = 200,
+                                tune.num.reps = 50,
+                                tune.num.draws = 1000,
                                 compute.oob.predictions = TRUE,
                                 num.threads = NULL,
-                                seed = NULL) {
+                                seed = runif(1, 0, .Machine$integer.max)) {
   validate_X(X)
   validate_sample_weights(sample.weights, X)
   Y <- validate_observations(Y, X)
   W <- validate_observations(W, X)
   Z <- validate_observations(Z, X)
-
-  mtry <- validate_mtry(mtry, X)
-  num.threads <- validate_num_threads(num.threads)
-  min.node.size <- validate_min_node_size(min.node.size)
-  sample.fraction <- validate_sample_fraction(sample.fraction)
-  seed <- validate_seed(seed)
   clusters <- validate_clusters(clusters, X)
-  samples.per.cluster <- validate_samples_per_cluster(samples.per.cluster, clusters)
-  honesty.fraction <- validate_honesty_fraction(honesty.fraction, honesty)
-  prune.empty.leaves <- validate_prune_empty_leaves(prune.empty.leaves)
+  samples.per.cluster <- validate_equalize_cluster_weights(equalize.cluster.weights, clusters, sample.weights)
+  num.threads <- validate_num_threads(num.threads)
 
   if (!is.numeric(reduced.form.weight) | reduced.form.weight < 0 | reduced.form.weight > 1) {
     stop("Error: Invalid value for reduced.form.weight. Please give a value in [0,1].")
   }
 
+  all.tunable.params <- c("sample.fraction", "mtry", "min.node.size", "honesty.fraction",
+                          "honesty.prune.leaves", "alpha", "imbalance.penalty")
+
+  args.orthog = list(X = X,
+                     num.trees = min(500, num.trees),
+                     sample.weights = sample.weights,
+                     clusters = clusters,
+                     equalize.cluster.weights = equalize.cluster.weights,
+                     sample.fraction = sample.fraction,
+                     mtry = mtry,
+                     min.node.size = 5,
+                     honesty = TRUE,
+                     honesty.fraction = 0.5,
+                     honesty.prune.leaves = honesty.prune.leaves,
+                     alpha = alpha,
+                     imbalance.penalty = imbalance.penalty,
+                     ci.group.size = 1,
+                     tune.parameters = tune.parameters,
+                     num.threads = num.threads,
+                     seed = seed)
+
   if (is.null(Y.hat)) {
-    forest.Y <- regression_forest(X, Y,
-      sample.weights = sample.weights, sample.fraction = sample.fraction, mtry = mtry,
-      num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, honesty = TRUE,
-      honesty.fraction = NULL, prune.empty.leaves = prune.empty.leaves, seed = seed, ci.group.size = 1, alpha = alpha,
-      imbalance.penalty = imbalance.penalty, clusters = clusters, samples.per.cluster = samples.per.cluster
-    )
+    forest.Y <- do.call(regression_forest, c(Y = list(Y), args.orthog))
     Y.hat <- predict(forest.Y)$predictions
   } else if (length(Y.hat) == 1) {
     Y.hat <- rep(Y.hat, nrow(X))
@@ -124,12 +150,7 @@ instrumental_forest <- function(X, Y, W, Z,
   }
 
   if (is.null(W.hat)) {
-    forest.W <- regression_forest(X, W,
-      sample.weights = sample.weights, sample.fraction = sample.fraction, mtry = mtry,
-      num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, honesty = TRUE,
-      honesty.fraction = NULL, prune.empty.leaves = prune.empty.leaves, seed = seed, ci.group.size = 1, alpha = alpha,
-      imbalance.penalty = imbalance.penalty, clusters = clusters, samples.per.cluster = samples.per.cluster
-    )
+    forest.W <- do.call(regression_forest, c(Y = list(W), args.orthog))
     W.hat <- predict(forest.W)$predictions
   } else if (length(W.hat) == 1) {
     W.hat <- rep(W.hat, nrow(X))
@@ -138,12 +159,7 @@ instrumental_forest <- function(X, Y, W, Z,
   }
 
   if (is.null(Z.hat)) {
-    forest.Z <- regression_forest(X, Z,
-      sample.weights = sample.weights, sample.fraction = sample.fraction, mtry = mtry,
-      num.trees = min(500, num.trees), num.threads = num.threads, min.node.size = NULL, honesty = TRUE,
-      honesty.fraction = NULL, prune.empty.leaves = prune.empty.leaves, seed = seed, ci.group.size = 1, alpha = alpha,
-      imbalance.penalty = imbalance.penalty, clusters = clusters, samples.per.cluster = samples.per.cluster
-    )
+    forest.Z <- do.call(regression_forest, c(Y = list(Z), args.orthog))
     Z.hat <- predict(forest.Z)$predictions
   } else if (length(Z.hat) == 1) {
     Z.hat <- rep(Z.hat, nrow(X))
@@ -151,21 +167,53 @@ instrumental_forest <- function(X, Y, W, Z,
     stop("Z.hat has incorrect length.")
   }
 
-  data <- create_data_matrices(X, Y - Y.hat, W - W.hat, Z - Z.hat, sample.weights = sample.weights)
+  data <- create_data_matrices(X, outcome = Y - Y.hat, treatment = W - W.hat,
+                               instrument = Z - Z.hat, sample.weights = sample.weights)
+  args <- list(num.trees = num.trees,
+              clusters = clusters,
+              samples.per.cluster = samples.per.cluster,
+              sample.fraction = sample.fraction,
+              mtry = mtry,
+              min.node.size = min.node.size,
+              honesty = honesty,
+              honesty.fraction = honesty.fraction,
+              honesty.prune.leaves = honesty.prune.leaves,
+              alpha = alpha,
+              imbalance.penalty = imbalance.penalty,
+              stabilize.splits = stabilize.splits,
+              ci.group.size = ci.group.size,
+              reduced.form.weight = reduced.form.weight,
+              compute.oob.predictions = compute.oob.predictions,
+              num.threads = num.threads,
+              seed = seed)
 
-  outcome.index <- ncol(X) + 1
-  treatment.index <- ncol(X) + 2
-  instrument.index <- ncol(X) + 3
-  sample.weight.index <- ncol(X) + 4
+  tuning.output <- NULL
+  if (!identical(tune.parameters, "none")){
+    tuning.output <- tune_instrumental_forest(X, Y, W, Z, Y.hat, W.hat, Z.hat,
+                                              sample.weights = sample.weights,
+                                              clusters = clusters,
+                                              equalize.cluster.weights = equalize.cluster.weights,
+                                              sample.fraction = sample.fraction,
+                                              mtry = mtry,
+                                              min.node.size = min.node.size,
+                                              honesty = honesty,
+                                              honesty.fraction = honesty.fraction,
+                                              honesty.prune.leaves = honesty.prune.leaves,
+                                              alpha = alpha,
+                                              imbalance.penalty = imbalance.penalty,
+                                              stabilize.splits = stabilize.splits,
+                                              ci.group.size = ci.group.size,
+                                              reduced.form.weight = reduced.form.weight,
+                                              tune.parameters = tune.parameters,
+                                              tune.num.trees = tune.num.trees,
+                                              tune.num.reps = tune.num.reps,
+                                              tune.num.draws = tune.num.draws,
+                                              num.threads = num.threads,
+                                              seed = seed)
+    args <- modifyList(args, as.list(tuning.output[["params"]]))
+  }
 
-  forest <- instrumental_train(
-    data$default, data$sparse,
-    outcome.index, treatment.index, instrument.index, sample.weight.index, !is.null(sample.weights),
-    mtry, num.trees, min.node.size, sample.fraction, honesty, honesty.fraction,
-    prune.empty.leaves, ci.group.size, reduced.form.weight, alpha, imbalance.penalty, stabilize.splits, clusters,
-    samples.per.cluster, compute.oob.predictions, num.threads, seed
-  )
-
+  forest <- do.call.rcpp(instrumental_train, c(data, args))
   class(forest) <- c("instrumental_forest", "grf")
   forest[["ci.group.size"]] <- ci.group.size
   forest[["X.orig"]] <- X
@@ -176,7 +224,11 @@ instrumental_forest <- function(X, Y, W, Z,
   forest[["W.hat"]] <- W.hat
   forest[["Z.hat"]] <- Z.hat
   forest[["clusters"]] <- clusters
+  forest[["equalize.cluster.weights"]] <- equalize.cluster.weights
   forest[["sample.weights"]] <- sample.weights
+  forest[["tunable.params"]] <- args[all.tunable.params]
+  forest[["tuning.output"]] <- tuning.output
+
   forest
 }
 
@@ -221,24 +273,20 @@ predict.instrumental_forest <- function(object, newdata = NULL,
   W.centered <- object[["W.orig"]] - object[["W.hat"]]
   Z.centered <- object[["Z.orig"]] - object[["Z.hat"]]
 
-  train.data <- create_data_matrices(X, Y.centered, W.centered, Z.centered)
-
-  outcome.index <- ncol(X) + 1
-  treatment.index <- ncol(X) + 2
-  instrument.index <- ncol(X) + 3
+  train.data <- create_data_matrices(X, outcome = Y.centered, treatment = W.centered, instrument = Z.centered)
 
   if (!is.null(newdata)) {
     validate_newdata(newdata, object$X.orig)
     data <- create_data_matrices(newdata)
     ret <- instrumental_predict(
-      forest.short, train.data$default, train.data$sparse,
-      outcome.index, treatment.index, instrument.index,
-      data$default, data$sparse, num.threads, estimate.variance
+      forest.short, train.data$train.matrix, train.data$sparse.train.matrix,
+      train.data$outcome.index, train.data$treatment.index, train.data$instrument.index,
+      data$train.matrix, data$sparse.train.matrix, num.threads, estimate.variance
     )
   } else {
     ret <- instrumental_predict_oob(
-      forest.short, train.data$default, train.data$sparse,
-      outcome.index, treatment.index, instrument.index,
+      forest.short, train.data$train.matrix, train.data$sparse.train.matrix,
+      train.data$outcome.index, train.data$treatment.index, train.data$instrument.index,
       num.threads, estimate.variance
     )
   }

@@ -31,10 +31,12 @@ Note that for a binary unconfounded treatment, the
 average partial effect matches the average treatment effect.
 }
 \details{
-If clusters are specified, then each cluster gets equal weight. For example,
-if there are 10 clusters with 1 unit each and per-cluster APE = 1, and there
-are 10 clusters with 19 units each and per-cluster APE = 0, then the overall
-APE is 0.5 (not 0.05).
+If clusters are specified, then each unit gets equal weight by default. For
+example, if there are 10 clusters with 1 unit each and per-cluster ATE = 1,
+and there are 10 clusters with 19 units each and per-cluster ATE = 0, then
+the overall ATE is 0.05 (additional sample.weights allow for custom
+weighting). If equalize.cluster.weights = TRUE each cluster gets equal weight
+and the overall ATE is 0.5.
 }
 \examples{
 \dontrun{

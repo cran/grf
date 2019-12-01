@@ -8,11 +8,11 @@ In addition, GRF supports 'honest' estimation (where one subset of the data is u
 
 Some helpful links for getting started:
 
-* The R package documentation contains usage examples and method reference (https://grf-labs.github.io/grf).
+* The R package documentation contains usage examples and method reference (\url{https://grf-labs.github.io/grf}).
 
-* The GRF reference gives a detailed description of the GRF algorithm and includes troubleshooting suggestions: (https://github.com/grf-labs/grf/blob/master/REFERENCE.md).
+* The GRF reference gives a detailed description of the GRF algorithm and includes troubleshooting suggestions (\url{https://grf-labs.github.io/grf/REFERENCE.html}).
 
-* For community questions and answers around usage, see Github issues labelled 'question' (https://github.com/grf-labs/grf/issues?q=label\%3Aquestion).
+* For community questions and answers around usage, see Github issues labelled 'question' (\url{https://github.com/grf-labs/grf/issues?q=label\%3Aquestion}).
 }
 
 \examples{
@@ -78,10 +78,10 @@ TAU = 1 / (1 + exp(-X[, 3]))
 W = rbinom(n ,1, 1 / (1 + exp(-X[, 1] - X[, 2])))
 Y = pmax(X[, 2] + X[, 3], 0) + rowMeans(X[, 4:6]) / 2 + W * TAU + rnorm(n)
 
-forest.W = regression_forest(X, W, tune.parameters = TRUE)
+forest.W = regression_forest(X, W, tune.parameters = "all")
 W.hat = predict(forest.W)$predictions
 
-forest.Y = regression_forest(X, Y, tune.parameters = TRUE)
+forest.Y = regression_forest(X, Y, tune.parameters = "all")
 Y.hat = predict(forest.Y)$predictions
 
 forest.Y.varimp = variable_importance(forest.Y)
@@ -93,7 +93,7 @@ selected.vars = which(forest.Y.varimp / mean(forest.Y.varimp) > 0.2)
 
 tau.forest = causal_forest(X[, selected.vars], Y, W,
                            W.hat = W.hat, Y.hat = Y.hat,
-                           tune.parameters = TRUE)
+                           tune.parameters = "all")
 
 # Check whether causal forest predictions are well calibrated.
 test_calibration(tau.forest)

@@ -17,7 +17,7 @@ variable_importance(forest, decay.exponent = 2, max.depth = 4)
 A list specifying an 'importance value' for each feature.
 }
 \description{
-Calculate a simple measure of 'importance' for each feature.
+A simple weighted sum of how many times feature i was split on at each depth in the forest.
 }
 \examples{
 \dontrun{

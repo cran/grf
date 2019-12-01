@@ -10,7 +10,7 @@
 #' is about estimating tau = E[tau(X)] which, extending standard nomenclature,
 #' should perhaps be called the Average (Conditional) Local Averate Treatment
 #' Effect (ACLATE).
-#' 
+#'
 #' We estimate the ACLATE using a doubly robust estimator. See Chernozhukov
 #' et al. (2016) for a discussion, and Section 5.2 of Athey and Wager (2017)
 #' for an example using forests.
@@ -55,14 +55,14 @@ average_late <- function(forest,
           "only implemented for instrumental_forest."
       ))
   }
-  
+
   if (!all(forest$Z.orig %in% c(0, 1))) {
       stop(paste(
           "Average conditional local average treatment effect estimation",
           "only implemented for binary instruments."
       ))
   }
-
+  
   if (is.null(subset)) {
     subset <- 1:length(forest$Y.hat)
   }
@@ -84,18 +84,18 @@ average_late <- function(forest,
     1:length(forest$Y.orig)
   }
   observation.weight <- observation_weights(forest)
-  
+
   # The compliance forest estimates the effect of the "treatment" Z
   # on the "outcome" W.
   if (is.null(compliance.score)) {
-      compliance.forest <- causal_forest(forest$X.orig,
-                                         Y=forest$W.orig,
-                                         W=forest$Z.orig,
-                                         Y.hat=forest$W.hat,
-                                         W.hat=forest$Z.hat,
-                                         sample.weights = forest$sample.weights,
-                                         clusters = clusters)
-      compliance.score <- predict(compliance.forest)$predictions
+    compliance.forest <- causal_forest(forest$X.orig,
+                                       Y=forest$W.orig,
+                                       W=forest$Z.orig,
+                                       Y.hat=forest$W.hat,
+                                       W.hat=forest$Z.hat,
+                                       sample.weights = forest$sample.weights,
+                                       clusters = clusters)
+    compliance.score <- predict(compliance.forest)$predictions
   }
 
   # Only use data selected via subsetting.
@@ -111,9 +111,9 @@ average_late <- function(forest,
   subset.weights <- observation.weight[subset]
 
   if (min(subset.Z.hat) <= 0.01 || max(subset.Z.hat) >= 0.99) {
-    rng <- range(subset.W.hat)
+    rng <- range(subset.Z.hat)
     warning(paste0(
-      "Estimated treatment propensities take values between ",
+      "Estimated instrument propensities take values between ",
       round(rng[1], 3), " and ", round(rng[2], 3),
       " and in particular get very close to 0 or 1. ",
       "Poor overlap may hurt perfmance for average conditional local average ",
@@ -121,32 +121,32 @@ average_late <- function(forest,
     ))
   }
   
-  if (min(subset.compliance.score) <= 0.01 * sd(subset.W.orig)) {
+  if (abs(min(subset.compliance.score)) <= 0.01 * sd(subset.W.orig)) {
       warning(paste0(
           "The instrument appears to be weak, with some compliance scores as ",
           "low as ", round(min(subset.compliance.score), 4)
       ))
   }
-  
+
   subset.g.hat = (subset.Z.orig - subset.Z.hat) /
       (subset.Z.hat * (1 - subset.Z.hat)) /
       subset.compliance.score
-  Gamma.hat = subset.tau.hat.pointwise + subset.g.hat * 
-      (subset.Y.orig - subset.Y.hat - 
+  Gamma.hat = subset.tau.hat.pointwise + subset.g.hat *
+      (subset.Y.orig - subset.Y.hat -
        (subset.W.orig - subset.W.hat) * subset.tau.hat.pointwise)
 
   aclate.hat <- weighted.mean(Gamma.hat, subset.weights)
-  
+
   if (cluster.se) {
-      clust.avg <- Matrix::sparse.model.matrix(
-          ~ factor(subset.clusters) + 0,
-          transpose = TRUE
-      ) %*% (Gamma.hat * subset.weights)
-      sigma2.hat <- var(as.numeric(clust.avg)) * length(clust.avg) /
-          sum(subset.weights)^2 
+    clust.avg <- Matrix::sparse.model.matrix(
+      ~ factor(subset.clusters) + 0,
+      transpose = TRUE
+    ) %*% (Gamma.hat * subset.weights)
+    sigma2.hat <- var(as.numeric(clust.avg)) * length(clust.avg) /
+      sum(subset.weights)^2
   } else {
-      sigma2.hat <- var(Gamma.hat) / length(Gamma.hat)
+    sigma2.hat <- var(Gamma.hat) / length(Gamma.hat)
   }
-  
+
   return(c(estimate = aclate.hat, std.err = sqrt(sigma2.hat)))
 }
