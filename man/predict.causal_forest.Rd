@@ -4,10 +4,16 @@
 \alias{predict.causal_forest}
 \title{Predict with a causal forest}
 \usage{
-\method{predict}{causal_forest}(object, newdata = NULL,
-  linear.correction.variables = NULL, ll.lambda = NULL,
-  ll.weight.penalty = FALSE, num.threads = NULL,
-  estimate.variance = FALSE, ...)
+\method{predict}{causal_forest}(
+  object,
+  newdata = NULL,
+  linear.correction.variables = NULL,
+  ll.lambda = NULL,
+  ll.weight.penalty = FALSE,
+  num.threads = NULL,
+  estimate.variance = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{The trained forest.}

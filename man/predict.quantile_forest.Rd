@@ -4,8 +4,13 @@
 \alias{predict.quantile_forest}
 \title{Predict with a quantile forest}
 \usage{
-\method{predict}{quantile_forest}(object, newdata = NULL,
-  quantiles = c(0.1, 0.5, 0.9), num.threads = NULL, ...)
+\method{predict}{quantile_forest}(
+  object,
+  newdata = NULL,
+  quantiles = c(0.1, 0.5, 0.9),
+  num.threads = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{The trained forest.}

@@ -4,17 +4,37 @@
 \alias{instrumental_forest}
 \title{Intrumental forest}
 \usage{
-instrumental_forest(X, Y, W, Z, Y.hat = NULL, W.hat = NULL,
-  Z.hat = NULL, num.trees = 2000, sample.weights = NULL,
-  clusters = NULL, equalize.cluster.weights = FALSE,
-  sample.fraction = 0.5, mtry = min(ceiling(sqrt(ncol(X)) + 20),
-  ncol(X)), min.node.size = 5, honesty = TRUE,
-  honesty.fraction = 0.5, honesty.prune.leaves = TRUE, alpha = 0.05,
-  imbalance.penalty = 0, stabilize.splits = TRUE, ci.group.size = 2,
-  reduced.form.weight = 0, tune.parameters = "none",
-  tune.num.trees = 200, tune.num.reps = 50, tune.num.draws = 1000,
-  compute.oob.predictions = TRUE, num.threads = NULL, seed = runif(1,
-  0, .Machine$integer.max))
+instrumental_forest(
+  X,
+  Y,
+  W,
+  Z,
+  Y.hat = NULL,
+  W.hat = NULL,
+  Z.hat = NULL,
+  num.trees = 2000,
+  sample.weights = NULL,
+  clusters = NULL,
+  equalize.cluster.weights = FALSE,
+  sample.fraction = 0.5,
+  mtry = min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+  min.node.size = 5,
+  honesty = TRUE,
+  honesty.fraction = 0.5,
+  honesty.prune.leaves = TRUE,
+  alpha = 0.05,
+  imbalance.penalty = 0,
+  stabilize.splits = TRUE,
+  ci.group.size = 2,
+  reduced.form.weight = 0,
+  tune.parameters = "none",
+  tune.num.trees = 200,
+  tune.num.reps = 50,
+  tune.num.draws = 1000,
+  compute.oob.predictions = TRUE,
+  num.threads = NULL,
+  seed = runif(1, 0, .Machine$integer.max)
+)
 }
 \arguments{
 \item{X}{The covariates used in the instrumental regression.}

@@ -4,8 +4,13 @@
 \alias{predict.instrumental_forest}
 \title{Predict with an instrumental forest}
 \usage{
-\method{predict}{instrumental_forest}(object, newdata = NULL,
-  num.threads = NULL, estimate.variance = FALSE, ...)
+\method{predict}{instrumental_forest}(
+  object,
+  newdata = NULL,
+  num.threads = NULL,
+  estimate.variance = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{The trained forest.}

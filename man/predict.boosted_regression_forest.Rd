@@ -4,8 +4,13 @@
 \alias{predict.boosted_regression_forest}
 \title{Predict with a boosted regression forest.}
 \usage{
-\method{predict}{boosted_regression_forest}(object, newdata = NULL,
-  boost.predict.steps = NULL, num.threads = NULL, ...)
+\method{predict}{boosted_regression_forest}(
+  object,
+  newdata = NULL,
+  boost.predict.steps = NULL,
+  num.threads = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{The trained forest.}

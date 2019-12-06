@@ -4,13 +4,25 @@
 \alias{quantile_forest}
 \title{Quantile forest}
 \usage{
-quantile_forest(X, Y, num.trees = 2000, quantiles = c(0.1, 0.5, 0.9),
-  regression.splitting = FALSE, clusters = NULL,
-  equalize.cluster.weights = FALSE, sample.fraction = 0.5,
-  mtry = min(ceiling(sqrt(ncol(X)) + 20), ncol(X)), min.node.size = 5,
-  honesty = TRUE, honesty.fraction = 0.5,
-  honesty.prune.leaves = TRUE, alpha = 0.05, imbalance.penalty = 0,
-  num.threads = NULL, seed = runif(1, 0, .Machine$integer.max))
+quantile_forest(
+  X,
+  Y,
+  num.trees = 2000,
+  quantiles = c(0.1, 0.5, 0.9),
+  regression.splitting = FALSE,
+  clusters = NULL,
+  equalize.cluster.weights = FALSE,
+  sample.fraction = 0.5,
+  mtry = min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+  min.node.size = 5,
+  honesty = TRUE,
+  honesty.fraction = 0.5,
+  honesty.prune.leaves = TRUE,
+  alpha = 0.05,
+  imbalance.penalty = 0,
+  num.threads = NULL,
+  seed = runif(1, 0, .Machine$integer.max)
+)
 }
 \arguments{
 \item{X}{The covariates used in the quantile regression.}

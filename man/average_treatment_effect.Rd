@@ -4,8 +4,12 @@
 \alias{average_treatment_effect}
 \title{Estimate average treatment effects using a causal forest}
 \usage{
-average_treatment_effect(forest, target.sample = c("all", "treated",
-  "control", "overlap"), method = c("AIPW", "TMLE"), subset = NULL)
+average_treatment_effect(
+  forest,
+  target.sample = c("all", "treated", "control", "overlap"),
+  method = c("AIPW", "TMLE"),
+  subset = NULL
+)
 }
 \arguments{
 \item{forest}{The trained forest.}

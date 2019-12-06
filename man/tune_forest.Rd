@@ -4,9 +4,20 @@
 \alias{tune_forest}
 \title{Tune a forests}
 \usage{
-tune_forest(data, nrow.X, ncol.X, args, tune.parameters,
-  tune.parameters.defaults, num.fit.trees, num.fit.reps, num.optimize.reps,
-  train, predict_oob, predict.data.args)
+tune_forest(
+  data,
+  nrow.X,
+  ncol.X,
+  args,
+  tune.parameters,
+  tune.parameters.defaults,
+  num.fit.trees,
+  num.fit.reps,
+  num.optimize.reps,
+  train,
+  predict_oob,
+  predict.data.args
+)
 }
 \arguments{
 \item{data}{The data arguments (output from create_data_matrices) for the forest.}

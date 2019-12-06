@@ -4,8 +4,13 @@
 \alias{tune_ll_causal_forest}
 \title{Local linear forest tuning}
 \usage{
-tune_ll_causal_forest(forest, linear.correction.variables = NULL,
-  ll.weight.penalty = FALSE, num.threads = NULL, lambda.path = NULL)
+tune_ll_causal_forest(
+  forest,
+  linear.correction.variables = NULL,
+  ll.weight.penalty = FALSE,
+  num.threads = NULL,
+  lambda.path = NULL
+)
 }
 \arguments{
 \item{forest}{The forest used for prediction.}

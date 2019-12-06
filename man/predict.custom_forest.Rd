@@ -4,8 +4,7 @@
 \alias{predict.custom_forest}
 \title{Predict with a custom forest.}
 \usage{
-\method{predict}{custom_forest}(object, newdata = NULL,
-  num.threads = NULL, ...)
+\method{predict}{custom_forest}(object, newdata = NULL, num.threads = NULL, ...)
 }
 \arguments{
 \item{object}{The trained forest.}

@@ -4,8 +4,12 @@
 \alias{average_partial_effect}
 \title{Estimate average partial effects using a causal forest}
 \usage{
-average_partial_effect(forest, calibrate.weights = TRUE, subset = NULL,
-  num.trees.for.variance = 500)
+average_partial_effect(
+  forest,
+  calibrate.weights = TRUE,
+  subset = NULL,
+  num.trees.for.variance = 500
+)
 }
 \arguments{
 \item{forest}{The trained forest.}

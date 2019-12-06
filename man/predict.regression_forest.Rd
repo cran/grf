@@ -4,10 +4,16 @@
 \alias{predict.regression_forest}
 \title{Predict with a regression forest}
 \usage{
-\method{predict}{regression_forest}(object, newdata = NULL,
-  linear.correction.variables = NULL, ll.lambda = NULL,
-  ll.weight.penalty = FALSE, num.threads = NULL,
-  estimate.variance = FALSE, ...)
+\method{predict}{regression_forest}(
+  object,
+  newdata = NULL,
+  linear.correction.variables = NULL,
+  ll.lambda = NULL,
+  ll.weight.penalty = FALSE,
+  num.threads = NULL,
+  estimate.variance = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{The trained forest.}
