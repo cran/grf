@@ -1,5 +1,14 @@
-validate_X <- function(X) {
-  if (inherits(X, c("matrix", "data.frame")) && !is.numeric(as.matrix(X))) {
+validate_X <- function(X, allow.na = FALSE) {
+  valid.classes <- c("matrix", "data.frame", "dgCMatrix")
+
+  if (!inherits(X, valid.classes)) {
+    stop(paste(
+      "Currently the only supported data input types are:",
+      "`matrix`, `data.frame`, `dgCMatrix`"
+    ))
+  }
+
+  if (!inherits(X, "dgCMatrix") && !is.numeric(as.matrix(X))) {
     stop(paste(
       "The feature matrix X must be numeric. GRF does not",
       "currently support non-numeric features. If factor variables",
@@ -12,13 +21,13 @@ validate_X <- function(X) {
     ))
   }
 
-  if (inherits(X, "Matrix") && !(inherits(X, "dgCMatrix"))) {
-    stop("Currently only sparse data of class 'dgCMatrix' is supported.")
-  }
+  has.missing.values <- any(is.na(X))
 
-  if (any(is.na(X))) {
+  if (!allow.na && has.missing.values) {
     stop("The feature matrix X contains at least one NA.")
   }
+
+  has.missing.values
 }
 
 validate_observations <- function(V, X) {
@@ -134,11 +143,22 @@ validate_ll_path <- function(lambda.path) {
   lambda.path
 }
 
-validate_newdata <- function(newdata, X) {
+validate_ll_cutoff <- function(ll.split.cutoff,  num.rows) {
+   if (is.null(ll.split.cutoff)) {
+     ll.split.cutoff <- floor(sqrt(num.rows))
+   } else if (!is.numeric(ll.split.cutoff) || length(ll.split.cutoff) > 1) {
+     stop("LL split cutoff must be NULL or a scalar")
+   } else if (ll.split.cutoff < 0 || ll.split.cutoff > num.rows) {
+     stop("Invalid range for LL split cutoff")
+   }
+   ll.split.cutoff
+}
+
+validate_newdata <- function(newdata, X, allow.na = FALSE) {
+  validate_X(newdata, allow.na = allow.na)
   if (ncol(newdata) != ncol(X)) {
     stop("newdata must have the same number of columns as the training matrix.")
   }
-  validate_X(newdata)
 }
 
 validate_sample_weights <- function(sample.weights, X) {

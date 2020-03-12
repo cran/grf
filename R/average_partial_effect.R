@@ -11,7 +11,7 @@
 #' and there are 10 clusters with 19 units each and per-cluster ATE = 0, then
 #' the overall ATE is 0.05 (additional sample.weights allow for custom
 #' weighting). If equalize.cluster.weights = TRUE each cluster gets equal weight
-#' and the overall ATE is 0.5. 
+#' and the overall ATE is 0.5.
 #'
 #' @param forest The trained forest.
 #' @param calibrate.weights Whether to force debiasing weights to match expected
@@ -79,6 +79,10 @@ average_partial_effect <- function(forest,
   subset.weights.raw <- observation.weight[subset]
   subset.weights <- subset.weights.raw / mean(subset.weights.raw)
 
+  if (length(unique(subset.clusters)) <= 1) {
+    stop("The specified subset must contain units from more than one cluster.")
+  }
+
   # This is a simple plugin estimate of the APE.
   cape.plugin <- weighted.mean(tau.hat, subset.weights)
 
@@ -99,8 +103,14 @@ average_partial_effect <- function(forest,
   # Modify debiasing weights gamma to make this true, i.e., compute
   # argmin {||gamma - gamma.original||_2^2 : A'gamma = b}
   if (calibrate.weights) {
-    A <- cbind(1, subset.W.orig, subset.W.hat) / sum(subset.weights)
-    b <- c(0, 1, 0)
+    # Don't attempt to balance W.hat if it has too little variation.
+    if (sd(subset.W.hat) > 0.01 * sd(subset.W.orig)) {
+      A <- cbind(1, subset.W.orig, subset.W.hat) / sum(subset.weights)
+      b <- c(0, 1, 0)
+    } else {
+      A <- cbind(1, subset.W.orig) / sum(subset.weights)
+      b <- c(0, 1)
+    }
     bias <- t(A) %*% debiasing.weights - b
     lambda <- solve(t(A) %*% A, bias)
     correction <- A %*% lambda

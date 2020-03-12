@@ -6,10 +6,12 @@
 This function generates a GraphViz representation of the tree,
 which is then written into `dot_string`.}
 \usage{
-export_graphviz(tree)
+export_graphviz(tree, include.na.path)
 }
 \arguments{
 \item{tree}{the tree to convert}
+
+\item{include.na.path}{A boolean toggling whether to include the path of missing values or not.}
 }
 \description{
 Export a tree in DOT format.

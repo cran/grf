@@ -5,7 +5,13 @@
 \title{Estimate the best linear projection of a conditional average treatment effect
 using a causal forest.}
 \usage{
-best_linear_projection(forest, A = NULL, subset = NULL)
+best_linear_projection(
+  forest,
+  A = NULL,
+  subset = NULL,
+  debiasing.weights = NULL,
+  num.trees.for.variance = 500
+)
 }
 \arguments{
 \item{forest}{The trained forest.}
@@ -16,6 +22,14 @@ best_linear_projection(forest, A = NULL, subset = NULL)
 estimate the ATE. WARNING: For valid statistical performance,
 the subset should be defined only using features Xi, not using
 the treatment Wi or the outcome Yi.}
+
+\item{debiasing.weights}{A vector of length n of debiasing weights. If NULL (default)
+and the treatment is binary, then inverse-propensity weighting is used,
+otherwise, if the treatment is continuous, these are estimated by a variance
+forest.}
+
+\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x]. Default is 500.
+(only applies with continuous treatment and debiasing.weights = NULL)}
 }
 \value{
 An estimate of the best linear projection, along with coefficient standard errors.
@@ -27,10 +41,15 @@ covariates. This function provides a (doubly robust) fit to the linear model
 \details{
 tau(Xi) ~ beta_0 + Ai * beta
 
-Procedurally, we do so be regressing doubly robust scores derived from the causal
+Procedurally, we do so by regressing doubly robust scores derived from the causal
 forest against the Ai. Note the covariates Ai may consist of a subset of the Xi,
-or they may be distince The case of the null model tau(Xi) ~ beta_0 is equivalent
+or they may be distinct The case of the null model tau(Xi) ~ beta_0 is equivalent
 to fitting an average treatment effect via AIPW.
+
+In the event the treatment is continuous the inverse-propensity weight component of the
+double robust scores are replaced with a component based on a forest based
+estimate of Var[Wi | Xi = x]. These weights can also be passed manually by specifying
+debiasing.weights.
 }
 \examples{
 \dontrun{

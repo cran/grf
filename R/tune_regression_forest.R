@@ -99,7 +99,7 @@ tune_regression_forest <- function(X, Y,
                                   tune.num.draws = 1000,
                                   num.threads = NULL,
                                   seed = runif(1, 0, .Machine$integer.max)) {
-  validate_X(X)
+  validate_X(X, allow.na = TRUE)
   validate_sample_weights(sample.weights, X)
   Y <- validate_observations(Y, X)
   clusters <- validate_clusters(clusters, X)
@@ -145,8 +145,6 @@ tune_regression_forest <- function(X, Y,
 
   tune.parameters.defaults <- default.parameters[tune.parameters]
   train <- regression_train
-  predict_oob <- regression_predict_oob
-  predict.data.args <- c("train.matrix", "sparse.train.matrix", "outcome.index")
 
   tuning.output <- tune_forest(data = data,
                                nrow.X = nrow.X,
@@ -157,9 +155,7 @@ tune_regression_forest <- function(X, Y,
                                num.fit.trees = tune.num.trees,
                                num.fit.reps = tune.num.reps,
                                num.optimize.reps = tune.num.draws,
-                               train = train,
-                               predict_oob = predict_oob,
-                               predict.data.args = predict.data.args)
+                               train = train)
 
   tuning.output
 }

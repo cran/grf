@@ -14,9 +14,7 @@ tune_forest(
   num.fit.trees,
   num.fit.reps,
   num.optimize.reps,
-  train,
-  predict_oob,
-  predict.data.args
+  train
 )
 }
 \arguments{
@@ -40,10 +38,6 @@ tune_forest(
 to select the optimal parameters.}
 
 \item{train}{The grf forest training function.}
-
-\item{predict_oob}{The grf forest oob prediction function.}
-
-\item{predict.data.args}{The names of the arguments in data passed to predict_oob.}
 }
 \value{
 tuning output

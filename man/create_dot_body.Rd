@@ -4,18 +4,22 @@
 \alias{create_dot_body}
 \title{Writes each node information
 If it is a leaf node: show it in different color, show number of samples, show leaf id
-If it is a non-leaf node: show its splitting variable and splitting value}
+If it is a non-leaf node: show its splitting variable and splitting value
+If trained with missing values, the edge arrow is filled according to which direction the NAs are sent.}
 \usage{
-create_dot_body(tree, index = 1)
+create_dot_body(tree, index = 1, include.na.path)
 }
 \arguments{
 \item{tree}{the tree to convert}
 
 \item{index}{the index of the current node}
+
+\item{include.na.path}{A boolean toggling whether to include the path of missing values or not.}
 }
 \description{
 Writes each node information
 If it is a leaf node: show it in different color, show number of samples, show leaf id
 If it is a non-leaf node: show its splitting variable and splitting value
+If trained with missing values, the edge arrow is filled according to which direction the NAs are sent.
 }
 \keyword{internal}

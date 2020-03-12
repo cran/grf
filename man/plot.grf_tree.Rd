@@ -4,15 +4,19 @@
 \alias{plot.grf_tree}
 \title{Plot a GRF tree object.}
 \usage{
-\method{plot}{grf_tree}(x, ...)
+\method{plot}{grf_tree}(x, include.na.path = NULL, ...)
 }
 \arguments{
 \item{x}{The tree to plot}
 
+\item{include.na.path}{A boolean toggling whether to include the path of missing values or not.
+It defaults to whether the forest was trained with NAs.}
+
 \item{...}{Additional arguments (currently ignored).}
 }
 \description{
-Plot a GRF tree object.
+The direction NAs are sent are indicated with the arrow fill. An empty arrow indicates
+that NAs are sent that way. If trained without missing values, both arrows are filled.
 }
 \examples{
 \dontrun{

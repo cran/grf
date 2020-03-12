@@ -7,7 +7,13 @@
 ll_regression_forest(
   X,
   Y,
+  enable.ll.split = FALSE,
+  ll.split.weight.penalty = FALSE,
+  ll.split.lambda = 0.1,
+  ll.split.variables = NULL,
+  ll.split.cutoff = NULL,
   num.trees = 2000,
+  sample.weights = NULL,
   clusters = NULL,
   equalize.cluster.weights = FALSE,
   sample.fraction = 0.5,
@@ -18,9 +24,9 @@ ll_regression_forest(
   honesty.prune.leaves = TRUE,
   alpha = 0.05,
   imbalance.penalty = 0,
-  ci.group.size = 1,
+  ci.group.size = 2,
   tune.parameters = "none",
-  tune.num.trees = 10,
+  tune.num.trees = 50,
   tune.num.reps = 100,
   tune.num.draws = 1000,
   num.threads = NULL,
@@ -32,9 +38,27 @@ ll_regression_forest(
 
 \item{Y}{The outcome.}
 
+\item{enable.ll.split}{(experimental) Optional choice to make forest splits based on ridge residuals as opposed to
+standard CART splits. Defaults to FALSE.}
+
+\item{ll.split.weight.penalty}{If using local linear splits, user can specify whether or not to use a
+covariance ridge penalty, analogously to the prediction case. Defaults to FALSE.}
+
+\item{ll.split.lambda}{Ridge penalty for splitting. Defaults to 0.1.}
+
+\item{ll.split.variables}{Linear correction variables for splitting. Defaults to all variables.}
+
+\item{ll.split.cutoff}{Enables the option to use regression coefficients from the full dataset for LL splitting
+once leaves get sufficiently small. Leaf size after which we use the overall beta.
+Defaults to the square root of the number of samples. If desired, users can enforce no
+regulation (i.e., using the leaf betas at each step) by setting this parameter to zero.}
+
 \item{num.trees}{Number of trees grown in the forest. Note: Getting accurate
 confidence intervals generally requires more trees than
 getting accurate predictions. Default is 2000.}
+
+\item{sample.weights}{(experimental) Weights given to an observation in estimation.
+If NULL, each observation is given the same weight. Default is NULL.}
 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
 Default is NULL (ignored).}
@@ -84,7 +108,8 @@ In order to provide confidence intervals, ci.group.size must
 be at least 2. Default is 1.}
 
 \item{tune.parameters}{If true, NULL parameters are tuned by cross-validation; if FALSE
-NULL parameters are set to defaults. Default is FALSE.}
+NULL parameters are set to defaults. Default is FALSE. Currently, local linear tuning
+does not take local linear splits into account.}
 
 \item{tune.num.trees}{The number of trees in each 'mini forest' used to fit the tuning model. Default is 10.}
 
