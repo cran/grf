@@ -147,7 +147,7 @@ an average partial effect Cov[Y, W | X = x] / Var[W | X = x],
 and interpret it as a treatment effect given unconfoundedness.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a causal forest.
 n <- 500
 p <- 10

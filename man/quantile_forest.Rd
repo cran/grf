@@ -20,6 +20,7 @@ quantile_forest(
   honesty.prune.leaves = TRUE,
   alpha = 0.05,
   imbalance.penalty = 0,
+  compute.oob.predictions = FALSE,
   num.threads = NULL,
   seed = runif(1, 0, .Machine$integer.max)
 )
@@ -81,6 +82,8 @@ Only applies if honesty is enabled. Default is TRUE.}
 
 \item{imbalance.penalty}{A tuning parameter that controls how harshly imbalanced splits are penalized. Default is 0.}
 
+\item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed. Default is FALSE.}
+
 \item{num.threads}{Number of threads used in training. By default, the number of threads is set
 to the maximum hardware concurrency.}
 
@@ -94,7 +97,7 @@ Trains a regression forest that can be used to estimate
 quantiles of the conditional distribution of Y given X = x.
 }
 \examples{
-\dontrun{
+\donttest{
 # Generate data.
 n <- 50
 p <- 10

@@ -87,7 +87,7 @@ A trained regression forest object.
 Trains a custom forest model.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a custom forest.
 n <- 50
 p <- 10

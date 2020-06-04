@@ -117,7 +117,7 @@ Trains a regression forest that can be used to estimate
 the conditional mean function mu(x) = E[Y | X = x]
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a standard regression forest.
 n <- 500
 p <- 10

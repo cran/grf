@@ -19,7 +19,7 @@ is the number of times the feature was split on at that depth.
 Calculate which features the forest split on at each depth.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a quantile forest.
 n <- 50
 p <- 10

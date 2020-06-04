@@ -127,7 +127,7 @@ number of boosting iterations based on cross-validation. This functionality
 is experimental and will likely change in future releases.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a boosted regression forest.
 n <- 50
 p <- 10

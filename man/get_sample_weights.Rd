@@ -27,7 +27,7 @@ This function allows for examining the weights directly, so they could be potent
 input to a different analysis.
 }
 \examples{
-\dontrun{
+\donttest{
 p <- 10
 n <- 100
 X <- matrix(2 * runif(n * p) - 1, n, p)

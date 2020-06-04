@@ -25,7 +25,7 @@ is significantly greater than 0, then we can reject the null of
 no heterogeneity.
 }
 \examples{
-\dontrun{
+\donttest{
 n <- 800
 p <- 5
 X <- matrix(rnorm(n * p), n, p)

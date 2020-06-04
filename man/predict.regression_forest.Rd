@@ -58,7 +58,7 @@ Vector of predictions, along with estimates of the error and
 Gets estimates of E[Y|X=x] using a trained regression forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a standard regression forest.
 n <- 50
 p <- 10

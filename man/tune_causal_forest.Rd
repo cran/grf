@@ -123,7 +123,7 @@ A list consisting of the optimal parameter values ('params') along with their de
 Causal forest tuning
 }
 \examples{
-\dontrun{
+\donttest{
 # Find the optimal tuning parameters.
 n <- 500
 p <- 10

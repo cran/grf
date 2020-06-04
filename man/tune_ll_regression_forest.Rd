@@ -33,7 +33,7 @@ A list of lambdas tried, corresponding errors, and optimal ridge penalty lambda.
 Finds the optimal ridge penalty for local linear prediction.
 }
 \examples{
-\dontrun{
+\donttest{
 # Find the optimal tuning parameters.
 n <- 500
 p <- 10
@@ -43,7 +43,8 @@ forest <- regression_forest(X, Y)
 tuned.lambda <- tune_ll_regression_forest(forest)
 
 # Use this parameter to predict from a local linear forest.
-predictions <- predict(forest, linear.correction.variables = 1:p, lambda = tuned.lambda)
+predictions <- predict(forest, linear.correction.variables = 1:p,
+                       ll.lambda = tuned.lambda$lambda.min)
 }
 
 }

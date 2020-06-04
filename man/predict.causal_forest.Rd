@@ -62,7 +62,7 @@ Vector of predictions, along with estimates of the error and
 Gets estimates of tau(x) using a trained causal forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a causal forest.
 n <- 100
 p <- 10

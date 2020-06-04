@@ -23,7 +23,7 @@ estimate the ATE. WARNING: For valid statistical performance,
 the subset should be defined only using features Xi, not using
 the treatment Wi or the outcome Yi.}
 
-\item{debiasing.weights}{A vector of length n of debiasing weights. If NULL (default)
+\item{debiasing.weights}{A vector of length n (or the subset length) of debiasing weights. If NULL (default)
 and the treatment is binary, then inverse-propensity weighting is used,
 otherwise, if the treatment is continuous, these are estimated by a variance
 forest.}
@@ -52,7 +52,7 @@ estimate of Var[Wi | Xi = x]. These weights can also be passed manually by speci
 debiasing.weights.
 }
 \examples{
-\dontrun{
+\donttest{
 n <- 800
 p <- 5
 X <- matrix(rnorm(n * p), n, p)

@@ -15,29 +15,15 @@
   along with grf. If not, see <http://www.gnu.org/licenses/>.
  #-------------------------------------------------------------------------------*/
 
-#ifndef GRF_REGRESSIONSPLITTINGRULEFACTORY_H
-#define GRF_REGRESSIONSPLITTINGRULEFACTORY_H
-
-
-#include "splitting/factory/SplittingRuleFactory.h"
+#include "splitting/factory/SurvivalSplittingRuleFactory.h"
+#include "splitting/SurvivalSplittingRule.h"
 
 namespace grf {
 
-/**
- * A factory that produces standard regression splitting rules.
- *
- * In addition to performing standard regression splits, this rule applies
- * a penalty to avoid splits too close to the edge of the node's data.
- */
-class RegressionSplittingRuleFactory final: public SplittingRuleFactory {
-public:
-  RegressionSplittingRuleFactory() = default;
-  std::unique_ptr<SplittingRule> create(size_t max_num_unique_values,
-                                        const TreeOptions& options) const;
-private:
-  DISALLOW_COPY_AND_ASSIGN(RegressionSplittingRuleFactory);
-};
+std::unique_ptr<SplittingRule> SurvivalSplittingRuleFactory::create(size_t max_num_unique_values,
+                                                                    const TreeOptions& options) const {
+  return std::unique_ptr<SplittingRule>(new SurvivalSplittingRule(
+      options.get_alpha()));
+}
 
 } // namespace grf
-
-#endif //GRF_REGRESSIONSPLITTINGRULEFACTORY_H

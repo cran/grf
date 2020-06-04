@@ -19,7 +19,7 @@
 #'     notation of the paper).
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Train a quantile forest.
 #' n <- 50
 #' p <- 10
@@ -84,7 +84,7 @@ get_tree <- function(forest, index) {
   columns <- colnames(forest$X.orig)
   indices <- 1:ncol(forest$X.orig)
   tree$columns <- sapply(indices, function(i) {
-    if (!is.null(columns) & length(columns[i]) > 0) {
+    if (!is.null(columns) && length(columns[i]) > 0) {
       columns[i]
     } else {
       paste("X", i, sep = ".")
@@ -113,7 +113,7 @@ get_tree <- function(forest, index) {
 #' is the number of times the feature was split on at that depth.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Train a quantile forest.
 #' n <- 50
 #' p <- 10
@@ -143,7 +143,7 @@ split_frequencies <- function(forest, max.depth = 4) {
 #' @return A list specifying an 'importance value' for each feature.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Train a quantile forest.
 #' n <- 50
 #' p <- 10
@@ -180,7 +180,7 @@ variable_importance <- function(forest, decay.exponent = 2, max.depth = 4) {
 #'         training data. The value at (i, j) gives the weight of training sample j for test sample i.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' p <- 10
 #' n <- 100
 #' X <- matrix(2 * runif(n * p) - 1, n, p)
@@ -199,10 +199,10 @@ get_sample_weights <- function(forest, newdata = NULL, num.threads = NULL) {
 
   forest.short <- forest[-which(names(forest) == "X.orig")]
   X <- forest[["X.orig"]]
-  train.data <- create_data_matrices(X)
+  train.data <- create_train_matrices(X)
 
   if (!is.null(newdata)) {
-    data <- create_data_matrices(newdata)
+    data <- create_train_matrices(newdata)
     validate_newdata(newdata, X, allow.na = TRUE)
     compute_weights(
       forest.short, train.data$train.matrix, train.data$sparse.train.matrix,

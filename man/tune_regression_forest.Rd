@@ -109,7 +109,7 @@ Trains a regression forest that can be used to estimate
 the conditional mean function mu(x) = E[Y | X = x]
 }
 \examples{
-\dontrun{
+\donttest{
 # Find the optimal tuning parameters.
 n <- 500
 p <- 10

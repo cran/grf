@@ -50,7 +50,7 @@ A vector of predictions.
 Gets estimates of E[Y|X=x] using a trained regression forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train the forest.
 n <- 50
 p <- 5

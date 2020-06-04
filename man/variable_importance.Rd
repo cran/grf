@@ -20,7 +20,7 @@ A list specifying an 'importance value' for each feature.
 A simple weighted sum of how many times feature i was split on at each depth in the forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a quantile forest.
 n <- 50
 p <- 10

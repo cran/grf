@@ -54,7 +54,7 @@ weighting). If equalize.cluster.weights = TRUE each cluster gets equal weight
 and the overall ATE is 0.5.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a causal forest.
 n <- 50
 p <- 10
@@ -76,7 +76,7 @@ average_treatment_effect(c.forest, target.sample = "all")
 average_treatment_effect(c.forest, target.sample = "treated")
 
 # Estimate the conditional average treatment effect on samples with positive X[,1].
-average_treatment_effect(c.forest, target.sample = "all", X[, 1] > 0)
+average_treatment_effect(c.forest, target.sample = "all", subset = X[, 1] > 0)
 }
 
 }

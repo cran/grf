@@ -27,7 +27,7 @@ Vector of predictions.
 Predict with a custom forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a custom forest.
 n <- 50
 p <- 10

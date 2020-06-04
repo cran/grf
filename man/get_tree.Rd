@@ -31,7 +31,7 @@ A GRF tree object containing the below attributes.
 Retrieve a single tree from a trained forest object.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a quantile forest.
 n <- 50
 p <- 10

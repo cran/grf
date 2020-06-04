@@ -8,6 +8,7 @@ average_partial_effect(
   forest,
   calibrate.weights = TRUE,
   subset = NULL,
+  debiasing.weights = NULL,
   num.trees.for.variance = 500
 )
 }
@@ -22,7 +23,11 @@ estimate the ATE. WARNING: For valid statistical performance,
 the subset should be defined only using features Xi, not using
 the treatment Wi or the outcome Yi.}
 
-\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x]. Default is 500.}
+\item{debiasing.weights}{A vector of length n (or the subset length) of debiasing weights.
+If NULL (default) these are estimated by a variance forest.}
+
+\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x]. Default is 500.
+(only applies when debiasing.weights = NULL)}
 }
 \value{
 An estimate of the average partial effect, along with standard error.
@@ -41,9 +46,13 @@ and there are 10 clusters with 19 units each and per-cluster ATE = 0, then
 the overall ATE is 0.05 (additional sample.weights allow for custom
 weighting). If equalize.cluster.weights = TRUE each cluster gets equal weight
 and the overall ATE is 0.5.
+
+Double robust scores are calculated with a component based on a forest
+estimate of Var[Wi | Xi = x]. These weights can also be passed manually by
+specifying debiasing.weights.
 }
 \examples{
-\dontrun{
+\donttest{
 n <- 2000
 p <- 10
 X <- matrix(rnorm(n * p), n, p)

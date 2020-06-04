@@ -18,7 +18,7 @@ tune_forest(
 )
 }
 \arguments{
-\item{data}{The data arguments (output from create_data_matrices) for the forest.}
+\item{data}{The data arguments (output from create_train_matrices) for the forest.}
 
 \item{nrow.X}{The number of observations.}
 

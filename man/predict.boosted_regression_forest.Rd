@@ -35,7 +35,7 @@ A vector of predictions.
 Gets estimates of E[Y|X=x] using a trained regression forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a boosted regression forest.
 n <- 50
 p <- 10

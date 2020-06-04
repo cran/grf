@@ -4,13 +4,7 @@
 \alias{predict.quantile_forest}
 \title{Predict with a quantile forest}
 \usage{
-\method{predict}{quantile_forest}(
-  object,
-  newdata = NULL,
-  quantiles = c(0.1, 0.5, 0.9),
-  num.threads = NULL,
-  ...
-)
+\method{predict}{quantile_forest}(object, newdata = NULL, quantiles = NULL, num.threads = NULL, ...)
 }
 \arguments{
 \item{object}{The trained forest.}
@@ -21,7 +15,8 @@ Xi using only trees that did not use the i-th training example). Note
 that this matrix should have the number of columns as the training
 matrix, and that the columns must appear in the same order.}
 
-\item{quantiles}{Vector of quantiles at which estimates are required.}
+\item{quantiles}{Vector of quantiles at which estimates are required. If NULL, the quantiles
+used to train the forest is used. Default is NULL.}
 
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
@@ -35,7 +30,7 @@ Predictions at each test point for each desired quantile.
 Gets estimates of the conditional quantiles of Y given X using a trained forest.
 }
 \examples{
-\dontrun{
+\donttest{
 # Train a quantile forest.
 n <- 50
 p <- 10
