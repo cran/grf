@@ -3,14 +3,15 @@
 \name{best_linear_projection}
 \alias{best_linear_projection}
 \title{Estimate the best linear projection of a conditional average treatment effect
-using a causal forest.}
+using a causal forest, or causal survival forest.}
 \usage{
 best_linear_projection(
   forest,
   A = NULL,
   subset = NULL,
   debiasing.weights = NULL,
-  num.trees.for.variance = 500
+  num.trees.for.weights = 500,
+  vcov.type = "HC3"
 )
 }
 \arguments{
@@ -23,25 +24,31 @@ estimate the ATE. WARNING: For valid statistical performance,
 the subset should be defined only using features Xi, not using
 the treatment Wi or the outcome Yi.}
 
-\item{debiasing.weights}{A vector of length n (or the subset length) of debiasing weights. If NULL (default)
-and the treatment is binary, then inverse-propensity weighting is used,
-otherwise, if the treatment is continuous, these are estimated by a variance
-forest.}
+\item{debiasing.weights}{A vector of length n (or the subset length) of debiasing weights.
+If NULL (default) these are obtained via the appropriate doubly robust score
+construction, e.g., in the case of causal_forests with a binary treatment, they
+are obtained via inverse-propensity weighting.}
 
-\item{num.trees.for.variance}{Number of trees used to estimate Var[Wi | Xi = x]. Default is 500.
-(only applies with continuous treatment and debiasing.weights = NULL)}
+\item{num.trees.for.weights}{In some cases (e.g., with causal forests with a continuous
+treatment), we need to train auxiliary forests to learn debiasing weights.
+This is the number of trees used for this task. Note: this argument is only
+used when debiasing.weights = NULL.}
+
+\item{vcov.type}{Optional covariance type for standard errors. The possible
+options are HC0, ..., HC3. The default is "HC3", which is recommended in small
+samples and corresponds to the "shortcut formula" for the jackknife
+(see MacKinnon & White for more discussion, and Cameron & Miller for a review).
+For large data sets with clusters, "HC0" or "HC1" are significantly faster to compute.}
 }
 \value{
 An estimate of the best linear projection, along with coefficient standard errors.
 }
 \description{
 Let tau(Xi) = E[Y(1) - Y(0) | X = Xi] be the CATE, and Ai be a vector of user-provided
-covariates. This function provides a (doubly robust) fit to the linear model
+covariates. This function provides a (doubly robust) fit to the linear model tau(Xi) ~ beta_0 + Ai * beta.
 }
 \details{
-tau(Xi) ~ beta_0 + Ai * beta
-
-Procedurally, we do so by regressing doubly robust scores derived from the causal
+Procedurally, we do so by regressing doubly robust scores derived from the
 forest against the Ai. Note the covariates Ai may consist of a subset of the Xi,
 or they may be distinct The case of the null model tau(Xi) ~ beta_0 is equivalent
 to fitting an average treatment effect via AIPW.
@@ -64,7 +71,18 @@ best_linear_projection(forest, X[,1:2])
 
 }
 \references{
-Chernozhukov, Victor, and Vira Semenova. "Simultaneous inference for
-            Best Linear Predictor of the Conditional Average Treatment Effect and
-            other structural functions." arXiv preprint arXiv:1702.06240 (2017).
+Cameron, A. Colin, and Douglas L. Miller. "A practitioner's guide to
+ cluster-robust inference." Journal of human resources 50, no. 2 (2015): 317-372.
+
+Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu.
+ "Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests."
+ arXiv preprint arXiv:2001.09887, 2020.
+
+MacKinnon, James G., and Halbert White. "Some heteroskedasticity-consistent
+ covariance matrix estimators with improved finite sample properties."
+ Journal of Econometrics 29.3 (1985): 305-325.
+
+Semenova, Vira, and Victor Chernozhukov. "Debiased Machine Learning of
+ Conditional Average Treatment Effects and Other Causal Functions".
+ The Econometrics Journal (2020).
 }

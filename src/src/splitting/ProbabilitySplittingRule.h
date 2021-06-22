@@ -19,6 +19,7 @@
 #define GRF_PROBABILITYSPLITTINGRULE_H
 
 #include <vector>
+
 #include "commons/Data.h"
 #include "commons/globals.h"
 #include "splitting/SplittingRule.h"
@@ -36,7 +37,7 @@ public:
   bool find_best_split(const Data& data,
                        size_t node,
                        const std::vector<size_t>& possible_split_vars,
-                       const std::vector<double>& responses_by_sample,
+                       const Eigen::ArrayXXd& responses_by_sample,
                        const std::vector<std::vector<size_t>>& samples,
                        std::vector<size_t>& split_vars,
                        std::vector<double>& split_values,
@@ -44,14 +45,14 @@ public:
 
 private:
   void find_best_split_value(const Data& data,
-                             size_t node, size_t var, size_t num_classes, size_t* class_counts,
+                             size_t node, size_t var, size_t num_classes, double* class_counts,
                              size_t size_node,
                              size_t min_child_size,
                              double& best_value,
                              size_t& best_var,
                              double& best_decrease,
                              bool& best_send_missing_left,
-                             const std::vector<double>& responses_by_sample,
+                             const Eigen::ArrayXXd& responses_by_sample,
                              const std::vector<std::vector<size_t>>& samples);
 
   size_t num_classes;
@@ -60,7 +61,7 @@ private:
   double imbalance_penalty;
 
   size_t* counter;
-  size_t* counter_per_class;
+  double* counter_per_class;
 
   DISALLOW_COPY_AND_ASSIGN(ProbabilitySplittingRule);
 };

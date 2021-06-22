@@ -29,7 +29,6 @@ causal_forest(
   tune.num.reps = 50,
   tune.num.draws = 1000,
   compute.oob.predictions = TRUE,
-  orthog.boosting = FALSE,
   num.threads = NULL,
   seed = runif(1, 0, .Machine$integer.max)
 )
@@ -53,7 +52,7 @@ these are estimated using a separate regression forest. Default is NULL.}
 confidence intervals generally requires more trees than
 getting accurate predictions. Default is 2000.}
 
-\item{sample.weights}{(experimental) Weights given to each sample in estimation.
+\item{sample.weights}{Weights given to each sample in estimation.
 If NULL, each observation receives the same weight.
 Note: To avoid introducing confounding, weights should be
 independent of the potential outcomes given X. Default is NULL.}
@@ -84,8 +83,7 @@ Default is 5.}
 
 \item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.
 For a detailed description of honesty, honesty.fraction, honesty.prune.leaves, and recommendations for
-parameter tuning, see the grf
-\href{https://grf-labs.github.io/grf/REFERENCE.html#honesty-honesty-fraction-honesty-prune-leaves}{algorithm reference}.}
+parameter tuning, see the grf algorithm reference.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. Default is 0.5 (i.e. half of the data is used for
@@ -122,10 +120,6 @@ Default is "none" (no parameters are tuned).}
 to select the optimal parameters. Default is 1000.}
 
 \item{compute.oob.predictions}{Whether OOB predictions on training set should be precomputed. Default is TRUE.}
-
-\item{orthog.boosting}{(experimental) If TRUE, then when Y.hat = NULL or W.hat is NULL,
-the missing quantities are estimated using boosted regression forests.
-The number of boosting steps is selected automatically. Default is FALSE.}
 
 \item{num.threads}{Number of threads used in training. By default, the number of threads is set
 to the maximum hardware concurrency.}

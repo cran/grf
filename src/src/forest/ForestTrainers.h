@@ -25,9 +25,17 @@ namespace grf {
 ForestTrainer instrumental_trainer(double reduced_form_weight,
                                    bool stabilize_splits);
 
+ForestTrainer multi_causal_trainer(size_t num_treatments,
+                                   size_t num_outcomes,
+                                   bool stabilize_splits);
+
 ForestTrainer quantile_trainer(const std::vector<double>& quantiles);
 
+ForestTrainer probability_trainer(size_t num_classes);
+
 ForestTrainer regression_trainer();
+
+ForestTrainer multi_regression_trainer(size_t num_outcomes);
 
 ForestTrainer ll_regression_trainer(double split_lambda,
                                    bool weight_penalty,
@@ -37,7 +45,7 @@ ForestTrainer ll_regression_trainer(double split_lambda,
 
 ForestTrainer survival_trainer();
 
-ForestTrainer custom_trainer();
+ForestTrainer causal_survival_trainer(bool stabilize_splits);
 
 } // namespace grf
 

@@ -13,7 +13,7 @@ create_dot_body <- function(tree, index = 1, include.na.path) {
   if (node$is_leaf) {
     num_samples <- length(node$samples)
     leaf_stats_text <- ""
-    if(!is.null(node$leaf_stats)){
+    if (!is.null(node$leaf_stats)) {
       leaf_stats_text <- paste("\n", paste(names(node$leaf_stats), unname(node$leaf_stats), sep = " = ", collapse = "\n"))
     }
     line_label <- paste(index - 1, ' [shape=box,style=filled,color=".7 .3 1.0" , label="size = ',
@@ -121,6 +121,9 @@ export_graphviz <- function(tree, include.na.path) {
 #' Y <- pmax(X[, 1], 0) * W + X[, 2] + pmin(X[, 3], 0) + rnorm(n)
 #' c.forest <- causal_forest(X, Y, W)
 #' plot(tree <- get_tree(c.forest, 1))
+#' # Compute the leaf nodes the first five samples falls into.
+#' leaf.nodes <- get_leaf_node(tree, X[1:5, ])
+#'
 #' # Saving a plot in .svg can be done with the `DiagrammeRsvg` package.
 #' install.packages("DiagrammeRsvg")
 #' tree.plot = plot(tree)

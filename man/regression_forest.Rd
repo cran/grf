@@ -38,7 +38,7 @@ regression_forest(
 confidence intervals generally requires more trees than
 getting accurate predictions. Default is 2000.}
 
-\item{sample.weights}{(experimental) Weights given to an observation in estimation.
+\item{sample.weights}{Weights given to an observation in estimation.
 If NULL, each observation is given the same weight. Default is NULL.}
 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
@@ -67,8 +67,7 @@ Default is 5.}
 
 \item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.
 For a detailed description of honesty, honesty.fraction, honesty.prune.leaves, and recommendations for
-parameter tuning, see the grf
-\href{https://grf-labs.github.io/grf/REFERENCE.html#honesty-honesty-fraction-honesty-prune-leaves}{algorithm reference}.}
+parameter tuning, see the grf algorithm reference.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. Default is 0.5 (i.e. half of the data is used for

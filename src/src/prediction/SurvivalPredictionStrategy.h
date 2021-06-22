@@ -18,7 +18,6 @@
 #ifndef GRF_SURVIVALPREDICTIONSTRATEGY_H
 #define GRF_SURVIVALPREDICTIONSTRATEGY_H
 
-#include "commons/DefaultData.h"
 #include "commons/Data.h"
 #include "prediction/DefaultPredictionStrategy.h"
 #include "prediction/PredictionValues.h"
@@ -27,12 +26,15 @@ namespace grf {
 
 class SurvivalPredictionStrategy final: public DefaultPredictionStrategy {
 public:
+  static const int KAPLAN_MEIER;
+  static const int NELSON_AALEN;
 
   /**
-   * Compute Kaplan-Meier estimates of the survival function.
+   * Compute the Kaplan-Meier (prediction_type = 0) or the Nelson-Aalen
+   * (prediction_type = 1) estimates of the survival function.
    *
    * This estimate is weighted by the random forest weights (alpha) and
-   * the sample weights.
+   * if provided, the sample weights.
    *
    * (Variance and error estimates are not supported).
    *
@@ -41,7 +43,8 @@ public:
    * integers in the range 0, ..., num_failures.
    *
    */
-  SurvivalPredictionStrategy(size_t num_failures);
+  SurvivalPredictionStrategy(size_t num_failures,
+                             int prediction_type);
 
   size_t prediction_length() const;
 
@@ -59,7 +62,18 @@ public:
     size_t ci_group_size) const;
 
 private:
+  std::vector<double> predict_kaplan_meier(
+    const std::vector<double>& count_failure,
+    const std::vector<double>& count_censor,
+    double sum) const;
+
+  std::vector<double> predict_nelson_aalen(
+    const std::vector<double>& count_failure,
+    const std::vector<double>& count_censor,
+    double sum) const;
+
   size_t num_failures;
+  size_t prediction_type;
 };
 
 } // namespace grf

@@ -2,9 +2,16 @@
 % Please edit documentation in R/survival_forest.R
 \name{predict.survival_forest}
 \alias{predict.survival_forest}
-\title{Predict with a survival forest forest}
+\title{Predict with a survival forest}
 \usage{
-\method{predict}{survival_forest}(object, newdata = NULL, failure.times = NULL, num.threads = NULL, ...)
+\method{predict}{survival_forest}(
+  object,
+  newdata = NULL,
+  failure.times = NULL,
+  prediction.type = c("Kaplan-Meier", "Nelson-Aalen"),
+  num.threads = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{The trained forest.}
@@ -16,7 +23,10 @@ that this matrix should have the number of columns as the training
 matrix, and that the columns must appear in the same order.}
 
 \item{failure.times}{A vector of failure times to make predictions at. If NULL, then the
-failure times used for training the forest is used. Default is NULL.}
+failure times used for training the forest is used. The time points should be in increasing order. Default is NULL.}
+
+\item{prediction.type}{The type of estimate of the survival function, choices are "Kaplan-Meier" or "Nelson-Aalen".
+The default is the prediction.type used to train the forest.}
 
 \item{num.threads}{Number of threads used in training. If set to NULL, the software
 automatically selects an appropriate amount.}
@@ -24,11 +34,13 @@ automatically selects an appropriate amount.}
 \item{...}{Additional arguments (currently ignored).}
 }
 \value{
-Vector of predictions.
+A list with elements `failure.times`: a vector of event times t for the survival curve,
+ and `predictions`: a matrix of survival curves. Each row is the survival curve for
+ sample X_i: predictions[i, j] = S(failure.times[j], X_i).
 }
 \description{
-Gets estimates of the conditional survival function S(t, x) using a trained survival forest (estimated using
-Kaplan-Meier).
+Gets estimates of the conditional survival function S(t, x) using a trained survival forest. The curve can be
+estimated by Kaplan-Meier, or Nelson-Aalen.
 }
 \examples{
 \donttest{
@@ -72,6 +84,13 @@ s.forest.grid <- survival_forest(X, Y, D, failure.times = events)
 s.pred.grid <- predict(s.forest.grid)
 matpoints(s.pred.grid$failure.times, t(s.pred.grid$predictions[1:5, ]),
           type = "l", lty = 2)
+
+# Compute OOB concordance based on the mortality score in Ishwaran et al. (2008).
+s.pred.nelson.aalen <- predict(s.forest, prediction.type = "Nelson-Aalen")
+chf.score <- rowSums(-log(s.pred.nelson.aalen$predictions))
+if (require("survival", quietly = TRUE)) {
+ concordance(Surv(Y, D) ~ chf.score, reverse = TRUE)
+}
 }
 
 }

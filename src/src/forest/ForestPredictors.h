@@ -22,14 +22,18 @@
 
 namespace grf {
 
-ForestPredictor custom_predictor(uint num_threads);
-
 ForestPredictor instrumental_predictor(uint num_threads);
+
+ForestPredictor multi_causal_predictor(uint num_threads, size_t num_treatments, size_t num_outcomes);
 
 ForestPredictor quantile_predictor(uint num_threads,
                                    const std::vector<double>& quantiles);
 
+ForestPredictor probability_predictor(uint num_threads, size_t num_classes);
+
 ForestPredictor regression_predictor(uint num_threads);
+
+ForestPredictor multi_regression_predictor(uint num_threads, size_t num_outcomes);
 
 ForestPredictor ll_regression_predictor(uint num_threads,
                                         std::vector<double> lambdas,
@@ -41,7 +45,9 @@ ForestPredictor ll_causal_predictor(uint num_threads,
                                    bool weight_penalty,
                                    std::vector<size_t> linear_correction_variables);
 
-ForestPredictor survival_predictor(uint num_threads, size_t num_failures);
+ForestPredictor survival_predictor(uint num_threads, size_t num_failures, int prediction_type);
+
+ForestPredictor causal_survival_predictor(uint num_threads);
 
 } // namespace grf
 

@@ -59,7 +59,7 @@ these are estimated using a separate regression forest. Default is NULL.}
 confidence intervals generally requires more trees than
 getting accurate predictions. Default is 2000.}
 
-\item{sample.weights}{(experimental) Weights given to each observation in estimation.
+\item{sample.weights}{Weights given to each observation in estimation.
 If NULL, each observation receives equal weight. Default is NULL.}
 
 \item{clusters}{Vector of integers or factors specifying which cluster each observation corresponds to.
@@ -88,8 +88,7 @@ Default is 5.}
 
 \item{honesty}{Whether to use honest splitting (i.e., sub-sample splitting). Default is TRUE.
 For a detailed description of honesty, honesty.fraction, honesty.prune.leaves, and recommendations for
-parameter tuning, see the grf
-\href{https://grf-labs.github.io/grf/REFERENCE.html#honesty-honesty-fraction-honesty-prune-leaves}{algorithm reference}.}
+parameter tuning, see the grf algorithm reference.}
 
 \item{honesty.fraction}{The fraction of data that will be used for determining splits if honesty = TRUE. Corresponds
 to set J1 in the notation of the paper. Default is 0.5 (i.e. half of the data is used for
@@ -146,4 +145,22 @@ using instruments. Formally, the forest estimates
 tau(X) = Cov[Y, Z | X = x] / Cov[W, Z | X = x].
 Note that when the instrument Z and treatment assignment W
 coincide, an instrumental forest is equivalent to a causal forest.
+}
+\examples{
+\donttest{
+# Train an instrumental forest.
+n <- 2000
+p <- 5
+X <- matrix(rbinom(n * p, 1, 0.5), n, p)
+Z <- rbinom(n, 1, 0.5)
+Q <- rbinom(n, 1, 0.5)
+W <- Q * Z
+tau <-  X[, 1] / 2
+Y <- rowSums(X[, 1:3]) + tau * W + Q + rnorm(n)
+iv.forest <- instrumental_forest(X, Y, W, Z)
+
+# Predict on out-of-bag training samples.
+iv.pred <- predict(iv.forest)
+}
+
 }
