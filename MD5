@@ -1,4 +1,4 @@
-5f7938b50e307ec1939ac5e8fe3aad5b *DESCRIPTION
+836fda40a407f9a1dc2aded3b70a8ca5 *DESCRIPTION
 7b7b08a3968bdb9d63bda9447f021058 *NAMESPACE
 2dd5008b8272ad42051b22bd5b89c2be *R/RcppExports.R
 9a1030d840c62806dec3547e9922d9ec *R/analysis_tools.R
@@ -219,8 +219,4 @@ b1d001678bbe5fb83bbf32ef8e64a4f7 *src/src/tree/TreeOptions.h
 13ae42b0326ef52099017a4d71e5ba45 *src/src/tree/TreeTrainer.cpp
 72c83ef995c08056b78bd855f4e183f0 *src/src/tree/TreeTrainer.h
 6478d031507dea81ea6a7d90256292be *tests/testthat.R
-a32142956ca60957bdbeb365822532db *tests/testthat/data/causal_survival_oob_predictions.csv
-3d5523fa7c9e663f257a798d63202a0a *tests/testthat/data/causal_survival_oob_predictions_grid.csv
-1ad4227c7620c4d1bd8c724cb06c08cb *tests/testthat/data/causal_survival_predictions.csv
-5359365eea8e8cd87272c4009fd3bb6a *tests/testthat/data/causal_survival_predictions_grid.csv
 00714991b9e3e6038d0a057d3ab496ee *tests/testthat/test_cran_smoke_test.R
