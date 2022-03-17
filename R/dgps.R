@@ -216,14 +216,17 @@ generate_causal_data <- function(n, p, sigma.m = 1, sigma.tau = 0.1, sigma.noise
 #' @param n The number of samples.
 #' @param p The number of covariates.
 #' @param Y.max The maximum follow-up time (optional).
+#' @param y0 Query time to estimate P(T(1) > y0 | X) - P(T(0) > y0 | X) (optional).
 #' @param X The covariates (optional).
+#' @param rho The correlation coefficient of the X's covariance matrix V_{ij} = rho^|i-j|. Default is 0.
 #' @param n.mc The number of monte carlo draws to estimate the treatment effect with. Default is 10000.
 #' @param dgp The type of DGP.
 #'
 #' @return A list with entries:
 #'  `X`: the covariates, `Y`: the event times, `W`: the treatment indicator, `D`: the censoring indicator,
-#'  `cate`: the treatment effect estimated by monte carlo, `cate.sign`: the true sign of the cate for ITR comparison,
-#'  `dgp`: the dgp name, `Y.max`: the maximum follow-up time.
+#'  `cate`: the treatment effect (RMST) estimated by monte carlo, `cate.prob` the difference in survival probability,
+#'  `cate.sign`: the true sign of the cate for ITR comparison, `dgp`: the dgp name, `Y.max`: the maximum follow-up time,
+#'  `y0`: the query time for difference in survival probability.
 #'
 #' @examples
 #' \donttest{
@@ -237,7 +240,7 @@ generate_causal_data <- function(n, p, sigma.m = 1, sigma.tau = 0.1, sigma.noise
 #' }
 #'
 #' @export
-generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 10000,
+generate_causal_survival_data <- function(n, p, Y.max = NULL, y0 = NULL, X = NULL, rho = 0, n.mc = 10000,
                                           dgp = c("simple1", "type1", "type2", "type3", "type4", "type5")) {
   .minp <- c(simple1 = 1, type1 = 5, type2 = 5, type3 = 5, type4 = 5, type5 = 5)
   dgp <- match.arg(dgp)
@@ -249,13 +252,25 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
   if (p < minp) {
     stop(paste("Selected dgp", dgp, "requires a minimum of", minp, "variables."))
   }
+  if (rho !=0 ) {
+    if (!("MASS" %in% utils::installed.packages())) {
+      stop("`rho != 0` requires the MASS library.")
+    }
+  }
 
   if (dgp == "simple1") {
     if (is.null(Y.max)) {
       Y.max <- 1
     }
+    if (is.null(y0)) {
+      y0 <- 0.6
+    }
     if (is.null(X)) {
-      X <- matrix(runif(n * p), n, p)
+      if (rho == 0) {
+        X <- matrix(runif(n * p), n, p)
+      } else {
+        X <- pnorm(MASS::mvrnorm(n, rep(0, p), stats::toeplitz(rho^seq(0, p - 1))))
+      }
     }
     W <- rbinom(n, 1, 0.5)
     failure.time <- pmin(rexp(n) * X[, 1] + W, Y.max)
@@ -264,8 +279,10 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     D <- as.integer(failure.time <= censor.time)
     temp <- rexp(n.mc)
     cate <- rep(NA, n)
+    cate.prob <- rep(NA, n)
     for (i in 1:n) {
       cate[i] <- mean(pmin(temp * X[i, 1] + 1, Y.max) - pmin(temp * X[i, 1], Y.max))
+      cate.prob[i] <- mean(temp * X[i, 1] + 1 > y0) - mean(temp * X[i, 1] > y0)
     }
     cate.sign = rep(1, n)
   } else if (dgp == "type1") {
@@ -273,8 +290,15 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     if (is.null(Y.max)) {
       Y.max <- 1.5
     }
+    if (is.null(y0)) {
+      y0 <- 0.8 # 90-percentile of Y
+    }
     if (is.null(X)) {
-      X <- matrix(runif(n * p), n, p)
+      if (rho == 0) {
+        X <- matrix(runif(n * p), n, p)
+      } else {
+        X <- pnorm(MASS::mvrnorm(n, rep(0, p), stats::toeplitz(rho^seq(0, p - 1))))
+      }
     }
     e <- (1 + dbeta(X[, 1], 2, 4)) / 4
     W <- rbinom(n, 1, e)
@@ -283,17 +307,19 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
                 (0.7 - 0.4 * I1 - 0.4 * sqrt(X[, 2])) * W + rnorm(n))
     failure.time <- pmin(ft, Y.max)
     numerator <- -log(runif(n))
-    denominator <- exp(-1.75 - 0.5 * sqrt(X[, 2]) + 0.2 * X[, 3]  + (1.15 + 0.5 * I1 - 0.3 * sqrt(X[, 2])) * W)
+    denominator <- exp(-1.75 - 0.5 * sqrt(X[, 2]) + 0.2 * X[, 3] + (1.15 + 0.5 * I1 - 0.3 * sqrt(X[, 2])) * W)
     censor.time <- (numerator / denominator)^(1/2)
     Y <- pmin(failure.time, censor.time)
     D <- as.integer(failure.time <= censor.time)
     cate <- rep(NA, n)
+    cate.prob <- rep(NA, n)
     eps <- rnorm(n.mc)
     for (i in 1:n) {
       ft0 <- exp(-1.85 - 0.8 * I1[i] + 0.7 * sqrt(X[i, 2]) + 0.2 * X[i, 3] + eps)
       ft1 <- exp(-1.85 - 0.8 * I1[i] + 0.7 * sqrt(X[i, 2]) + 0.2 * X[i, 3] +
                   0.7 - 0.4 * I1[i] - 0.4 * sqrt(X[i, 2]) + eps)
       cate[i] <- mean(pmin(ft1, Y.max) - pmin(ft0, Y.max))
+      cate.prob[i] <- mean(ft1 > y0) - mean(ft0 > y0)
     }
     cate.sign <- sign(0.7 - 0.4 * I1 - 0.4 * sqrt(X[, 2]))
   } else if (dgp == "type2") {
@@ -301,8 +327,15 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     if (is.null(Y.max)) {
       Y.max <- 2
     }
+    if (is.null(y0)) {
+      y0 <- 1.2 # 90-percentile of Y
+    }
     if (is.null(X)) {
-      X <- matrix(runif(n * p), n, p)
+      if (rho == 0) {
+        X <- matrix(runif(n * p), n, p)
+      } else {
+        X <- pnorm(MASS::mvrnorm(n, rep(0, p), stats::toeplitz(rho^seq(0, p - 1))))
+      }
     }
     e <- (1 + dbeta(X[, 1], 2, 4)) / 4
     W <- rbinom(n, 1, e)
@@ -313,11 +346,13 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     Y <- pmin(failure.time, censor.time)
     D <- as.integer(failure.time <= censor.time)
     cate <- rep(NA, n)
+    cate.prob <- rep(NA, n)
     numerator <- -log(runif(n.mc))
     for (i in 1:n) {
       cox.ft0 <- (numerator / exp(X[i, 1] + (-0.5 + X[i, 2]) * 0))^2
       cox.ft1 <- (numerator / exp(X[i, 1] + (-0.5 + X[i, 2]) * 1))^2
       cate[i] <- mean(pmin(cox.ft1, Y.max) - pmin(cox.ft0, Y.max))
+      cate.prob[i] <- mean(cox.ft1 > y0) - mean(cox.ft0 > y0)
     }
     cate.sign <- -sign(-0.5 + X[,2]) # Note: negative b/c of Cox model, larger is worse.
   } else if (dgp == "type3") {
@@ -325,8 +360,15 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     if (is.null(Y.max)) {
       Y.max <- 15
     }
+    if (is.null(y0)) {
+      y0 <- 10 # 90-percentile of Y
+    }
     if (is.null(X)) {
-      X <- matrix(runif(n * p), n, p)
+      if (rho == 0) {
+        X <- matrix(runif(n * p), n, p)
+      } else {
+        X <- pnorm(MASS::mvrnorm(n, rep(0, p), stats::toeplitz(rho^seq(0, p - 1))))
+      }
     }
     e <- (1 + dbeta(X[, 1], 2, 4)) / 4
     W <- rbinom(n, 1, e)
@@ -337,12 +379,14 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     Y <- pmin(failure.time, censor.time)
     D <- as.integer(failure.time <= censor.time)
     cate <- rep(NA, n)
+    cate.prob <- rep(NA, n)
     lambda.failure.0 <- X[, 2]^2 + X[, 3] + 6
     lambda.failure.1 <- X[, 2]^2 + X[, 3] + 6 + 2 * (sqrt(X[, 1]) - 0.3)
     for (i in 1:n) {
       ft0 <- rpois(n.mc, lambda.failure.0[i])
       ft1 <- rpois(n.mc, lambda.failure.1[i])
       cate[i] <- mean(pmin(ft1, Y.max) - pmin(ft0, Y.max))
+      cate.prob[i] <- mean(ft1 > y0) - mean(ft0 > y0)
     }
     cate.sign <- sign(sqrt(X[, 1]) - 0.3)
   } else if (dgp == "type4") {
@@ -350,8 +394,15 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     if (is.null(Y.max)) {
       Y.max <- 3
     }
+    if (is.null(y0)) {
+      y0 <- 2 # 90-percentile of Y
+    }
     if (is.null(X)) {
-      X <- matrix(runif(n * p), n, p)
+      if (rho == 0) {
+        X <- matrix(runif(n * p), n, p)
+      } else {
+        X <- pnorm(MASS::mvrnorm(n, rep(0, p), stats::toeplitz(rho^seq(0, p - 1))))
+      }
     }
     e <- 1 / ((1 + exp(-X[, 1])) * (1 + exp(-X[, 2])))
     W <- rbinom(n, 1, e)
@@ -362,12 +413,14 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     Y <- pmin(failure.time, censor.time)
     D <- as.integer(failure.time <= censor.time)
     cate <- rep(NA, n)
+    cate.prob <- rep(NA, n)
     lambda.failure.0 <- X[,2] + X[, 3]
     lambda.failure.1 <- X[,2] + X[, 3] + pmax(0, X[, 1] - 0.3)
     for (i in 1:n) {
       ft0 <- rpois(n.mc, lambda.failure.0[i])
       ft1 <- rpois(n.mc, lambda.failure.1[i])
       cate[i] <- mean(pmin(ft1, Y.max) - pmin(ft0, Y.max))
+      cate.prob[i] <- mean(ft1 > y0) - mean(ft0 > y0)
     }
     cate.sign <- sign(pmax(0, X[, 1] - 0.3))
     # For X1 < 0.3 the cate is zero so both (0, 1) are optimal, and we can ignore this subset.
@@ -377,8 +430,15 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     if (is.null(Y.max)) {
       Y.max <- 2
     }
+    if (is.null(y0)) {
+      y0 <- 0.17
+    }
     if (is.null(X)) {
-      X <- matrix(runif(n * p), n, p)
+      if (rho == 0) {
+        X <- matrix(runif(n * p), n, p)
+      } else {
+        X <- pnorm(MASS::mvrnorm(n, rep(0, p), stats::toeplitz(rho^seq(0, p - 1))))
+      }
     }
     e <- (1 + dbeta(X[, 1], 2, 4)) / 4
     W <- rbinom(n, 1, e)
@@ -389,14 +449,17 @@ generate_causal_survival_data <- function(n, p, Y.max = NULL, X = NULL, n.mc = 1
     Y <- pmin(failure.time, censor.time)
     D <- as.integer(failure.time <= censor.time)
     cate <- rep(NA, n)
+    cate.prob <- rep(NA, n)
     numerator <- -log(runif(n.mc))
     for (i in 1:n) {
       cox.ft0 <- (numerator / exp(X[i, 1] + (-0.4 + X[i, 2]) * 0))^2
       cox.ft1 <- (numerator / exp(X[i, 1] + (-0.4 + X[i, 2]) * 1))^2
       cate[i] <- mean(pmin(cox.ft1, Y.max) - pmin(cox.ft0, Y.max))
+      cate.prob[i] <- mean(cox.ft1 > y0) - mean(cox.ft0 > y0)
     }
     cate.sign <- -sign(-0.4 + X[,2]) # Note: negative b/c of Cox model, larger is worse.
   }
 
-  list(X = X, Y = Y, W = W, D = D, cate = cate, cate.sign = cate.sign, dgp = dgp, Y.max = Y.max)
+  list(X = X, Y = Y, W = W, D = D, cate = cate, cate.prob = cate.prob,
+       cate.sign = cate.sign, dgp = dgp, Y.max = Y.max, y0 = y0)
 }

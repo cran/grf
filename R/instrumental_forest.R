@@ -63,7 +63,7 @@
 #' @param reduced.form.weight Whether splits should be regularized towards a naive
 #'                            splitting criterion that ignores the instrument (and
 #'                            instead emulates a causal forest).
-#' @param tune.parameters (experimental) A vector of parameter names to tune.
+#' @param tune.parameters A vector of parameter names to tune.
 #'  If "all": all tunable parameters are tuned by cross-validation. The following parameters are
 #'  tunable: ("sample.fraction", "mtry", "min.node.size", "honesty.fraction",
 #'   "honesty.prune.leaves", "alpha", "imbalance.penalty"). If honesty is FALSE the honesty.* parameters are not tuned.
@@ -238,6 +238,7 @@ instrumental_forest <- function(X, Y, W, Z,
 
   forest <- do.call.rcpp(instrumental_train, c(data, args))
   class(forest) <- c("instrumental_forest", "grf")
+  forest[["seed"]] <- seed
   forest[["ci.group.size"]] <- ci.group.size
   forest[["X.orig"]] <- X
   forest[["Y.orig"]] <- Y

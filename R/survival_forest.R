@@ -1,10 +1,10 @@
 #' Survival forest
 #'
 #' Trains a forest for right-censored surival data that can be used to estimate the
-#' conditional survival function S(t, x) = P[Y > t | X = x]
+#' conditional survival function S(t, x) = P[T > t | X = x]
 #'
 #' @param X The covariates.
-#' @param Y The event time (may be negative).
+#' @param Y The event time (must be non-negative).
 #' @param D The event type (0: censored, 1: failure).
 #' @param failure.times A vector of event times to fit the survival curve at. If NULL, then all the observed
 #'  failure times are used. This speeds up forest estimation by constraining the event grid. Observed event
@@ -45,6 +45,8 @@
 #'  Only applies if honesty is enabled. Default is TRUE.
 #' @param alpha A tuning parameter that controls the maximum imbalance of a split. The number of failures in
 #'  each child has to be at least one or `alpha` times the number of samples in the parent node. Default is 0.05.
+#'  (On data with very low event rate the default value may be too high for the forest to split
+#'  and lowering it may be beneficial).
 #' @param compute.oob.predictions Whether OOB predictions on training set should be precomputed. Default is TRUE.
 #' @param prediction.type The type of estimate of the survival function, choices are "Kaplan-Meier" or "Nelson-Aalen".
 #' Only relevant if `compute.oob.predictions` is TRUE. Default is "Kaplan-Meier".
@@ -132,6 +134,9 @@ survival_forest <- function(X, Y, D,
   has.missing.values <- validate_X(X, allow.na = TRUE)
   validate_sample_weights(sample.weights, X)
   Y <- validate_observations(Y, X)
+  if (any(Y < 0)) {
+    stop("The event times must be non-negative.")
+  }
   D <- validate_observations(D, X)
   if (!all(D %in% c(0, 1))) {
     stop("The censor values can only be 0 or 1.")
@@ -152,6 +157,8 @@ survival_forest <- function(X, Y, D,
   # etc. Will range from 0 to num.failures.
   if (is.null(failure.times)) {
     failure.times <- sort(unique(Y[D == 1]))
+  } else if (is.unsorted(failure.times, strictly = TRUE)) {
+    stop("Argument `failure.times` should be a vector with elements in increasing order.")
   }
   Y.relabeled <- findInterval(Y, failure.times)
 
@@ -174,6 +181,7 @@ survival_forest <- function(X, Y, D,
 
   forest <- do.call.rcpp(survival_train, c(data, args))
   class(forest) <- c("survival_forest", "grf")
+  forest[["seed"]] <- seed
   forest[["X.orig"]] <- X
   forest[["Y.orig"]] <- Y
   forest[["Y.relabeled"]] <- Y.relabeled
@@ -274,6 +282,9 @@ predict.survival_forest <- function(object,
     failure.times <- object[["failure.times"]]
     Y.relabeled <- object[["Y.relabeled"]]
   } else {
+    if (is.unsorted(failure.times, strictly = TRUE)) {
+      stop("Argument `failure.times` should be a vector with elements in increasing order.")
+    }
     Y.relabeled <- findInterval(object[["Y.orig"]], failure.times)
   }
 

@@ -5,11 +5,11 @@
 #' forest prediction as the sole two regressors. A coefficient of 1 for
 #' `mean.forest.prediction` suggests that the mean forest prediction is correct,
 #' whereas a coefficient of 1 for `differential.forest.prediction` additionally suggests
-#' that the forest has captured heterogeneity in the underlying signal.
+#' that the heterogeneity estimates from the forest are well calibrated.
 #' The p-value of the `differential.forest.prediction` coefficient
 #' also acts as an omnibus test for the presence of heterogeneity: If the coefficient
 #' is significantly greater than 0, then we can reject the null of
-#' no heterogeneity.
+#' no heterogeneity. For another class of omnnibus tests see \code{\link{rank_average_treatment_effect}}.
 #'
 #' @param forest The trained forest.
 #' @param vcov.type Optional covariance type for standard errors. The possible
@@ -20,7 +20,7 @@
 #' @return A heteroskedasticity-consistent test of calibration.
 #'
 #' @references Cameron, A. Colin, and Douglas L. Miller. "A practitioner's guide to
-#'  cluster-robust inference." Journal of human resources 50, no. 2 (2015): 317-372.
+#'  cluster-robust inference." Journal of Human Resources 50, no. 2 (2015): 317-372.
 #' @references Chernozhukov, Victor, Mert Demirer, Esther Duflo, and Ivan Fernandez-Val.
 #'             "Generic Machine Learning Inference on Heterogenous Treatment Effects in
 #'             Randomized Experiments." arXiv preprint arXiv:1712.04802 (2017).
@@ -42,6 +42,7 @@
 #' @export
 test_calibration <- function(forest, vcov.type = "HC3") {
   observation.weight <- observation_weights(forest)
+  validate_sandwich(observation.weight)
   clusters <- if (length(forest$clusters) > 0) {
     forest$clusters
   } else {
@@ -92,8 +93,7 @@ test_calibration <- function(forest, vcov.type = "HC3") {
 
 
 
-#' Estimate the best linear projection of a conditional average treatment effect
-#' using a causal forest, or causal survival forest.
+#' Estimate the best linear projection of a conditional average treatment effect.
 #'
 #' Let tau(Xi) = E[Y(1) - Y(0) | X = Xi] be the CATE, and Ai be a vector of user-provided
 #' covariates. This function provides a (doubly robust) fit to the linear model tau(Xi) ~ beta_0 + Ai * beta.
@@ -129,7 +129,7 @@ test_calibration <- function(forest, vcov.type = "HC3") {
 #'  For large data sets with clusters, "HC0" or "HC1" are significantly faster to compute.
 #'
 #' @references Cameron, A. Colin, and Douglas L. Miller. "A practitioner's guide to
-#'  cluster-robust inference." Journal of human resources 50, no. 2 (2015): 317-372.
+#'  cluster-robust inference." Journal of Human Resources 50, no. 2 (2015): 317-372.
 #' @references Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu.
 #'  "Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests."
 #'  arXiv preprint arXiv:2001.09887, 2020.
@@ -170,6 +170,7 @@ best_linear_projection <- function(forest,
   subset <- validate_subset(forest, subset)
   subset.clusters <- clusters[subset]
   subset.weights <- observation.weight[subset]
+  validate_sandwich(subset.weights)
 
   if (length(unique(subset.clusters)) <= 1) {
     stop("The specified subset must contain units from more than one cluster.")

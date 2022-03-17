@@ -94,7 +94,7 @@ bool CausalSurvivalSplittingRule::find_best_split(const Data& data,
 
   double size_node = sum_node_z_squared - sum_node_z * sum_node_z / weight_sum_node;
   double min_child_size = size_node * alpha;
-  size_t min_child_size_survival = std::max<size_t>(std::ceil(num_samples * alpha), 1uL);
+  size_t min_child_size_survival = std::max<size_t>(static_cast<size_t>(std::ceil(num_samples * alpha)), 1uL);
 
   double mean_z_node = sum_node_z / weight_sum_node;
   size_t num_node_small_z = 0;
@@ -140,7 +140,7 @@ void CausalSurvivalSplittingRule::find_best_split_value(const Data& data,
                                                         double sum_node_z_squared,
                                                         size_t num_failures_node,
                                                         double min_child_size,
-                                                        double min_child_size_survival,
+                                                        size_t min_child_size_survival,
                                                         double& best_value,
                                                         size_t& best_var,
                                                         double& best_decrease,

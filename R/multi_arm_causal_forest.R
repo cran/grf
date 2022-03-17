@@ -1,4 +1,4 @@
-#' Multi-arm causal forest (experimental)
+#' Multi-arm causal forest
 #'
 #' Trains a causal forest that can be used to estimate
 #' conditional average treatment effects tau_k(X). When
@@ -38,6 +38,7 @@
 #'
 #' @param X The covariates used in the causal regression.
 #' @param Y The outcome (must be a numeric vector or matrix [one column per outcome] with no NAs).
+#'  Multiple outcomes should be on the same scale.
 #' @param W The treatment assignment (must be a factor vector with no NAs). The reference treatment
 #'          is set to the first treatment according to the ordinality of the factors, this can be changed
 #'          with the `relevel` function in R.
@@ -202,6 +203,9 @@ multi_arm_causal_forest <- function(X, Y, W,
   if (nlevels(W) == 1) {
     stop("Can not compute contrasts from a single treatment.")
   }
+  if (nlevels(W) != nlevels(droplevels(W))) {
+    warning("The treatment vector W contains unused levels (see `droplevels()` to drop unused levels).")
+  }
 
   args.orthog <- list(X = X,
                       num.trees = max(50, num.trees / 4),
@@ -222,22 +226,37 @@ multi_arm_causal_forest <- function(X, Y, W,
   if (is.null(Y.hat)) {
     forest.Y <- do.call(multi_regression_forest, c(Y = list(Y), args.orthog))
     Y.hat <- predict(forest.Y)$predictions
-  } else if (length(Y.hat) == NCOL(Y)) {
+  } else if (is.numeric(Y.hat) && length(Y.hat) == NCOL(Y)) {
     Y.hat <- matrix(Y.hat, nrow = NROW(Y), ncol = NCOL(Y), byrow = TRUE)
-  } else if (NROW(Y.hat) == nrow(X) && NCOL(Y.hat) == 1) {
+  } else if (!(is.matrix(Y.hat) || is.data.frame(Y.hat) || is.vector(Y.hat))) {
+      stop("Y.hat should be a matrix of E[Y | Xi] estimates.")
+  } else {
     Y.hat <- as.matrix(Y.hat)
-  } else if (NROW(Y.hat) != nrow(X) || NCOL(Y.hat) != NCOL(Y)) {
-    stop("Y.hat has incorrect length.")
+    if (NROW(Y.hat) != nrow(X) || NCOL(Y.hat) != NCOL(Y)) {
+      stop("Y.hat has incorrect dimensions.")
+    }
   }
 
   if (is.null(W.hat)) {
     args.orthog$ci.group.size <- 1
     forest.W <- do.call(probability_forest, c(Y = list(W), args.orthog))
     W.hat <- predict(forest.W)$predictions
-  } else if (length(W.hat) == nlevels(W)) {
+  } else if (is.numeric(W.hat) && length(W.hat) == nlevels(W)) {
     W.hat <- matrix(W.hat, nrow = length(W), ncol = nlevels(W), byrow = TRUE)
-  } else if ((NROW(W.hat) != nrow(X)) || NCOL(W.hat) != nlevels(W)) {
-    stop("W.hat has incorrect dimensions: should be a matrix of propensities for each (observation, arm).")
+  } else if (!(is.matrix(W.hat) || is.data.frame(W.hat))) {
+    stop("W.hat should a matrix of E[W_k | Xi] estimates.")
+  } else {
+    W.hat <- as.matrix(W.hat)
+    if ((NROW(W.hat) != nrow(X)) || NCOL(W.hat) != nlevels(W)) {
+      stop("W.hat has incorrect dimensions: should be a matrix of E[W_k | Xi] estimates.")
+    }
+    if (!is.null(colnames(W.hat))) {
+      if (!identical(levels(W), colnames(W.hat))) {
+        warning(paste(
+          "Column names are provided for W.hat, but do not correspond to the treatment levels W",
+          "(multi_arm_causal_forest assume the following is TRUE: `identical(levels(W), colnames(W.hat))`)."))
+      }
+    }
   }
 
   W.matrix <- stats::model.matrix(~ W - 1)
@@ -267,6 +286,7 @@ multi_arm_causal_forest <- function(X, Y, W,
 
   forest <- do.call.rcpp(multi_causal_train, c(data, args))
   class(forest) <- c("multi_arm_causal_forest", "grf")
+  forest[["seed"]] <- seed
   forest[["ci.group.size"]] <- ci.group.size
   forest[["X.orig"]] <- X
   forest[["Y.orig"]] <- Y
@@ -401,7 +421,7 @@ predict.multi_arm_causal_forest <- function(object,
                num.threads = num.threads,
                estimate.variance = estimate.variance)
 
-   if (!is.null(newdata)) {
+  if (!is.null(newdata)) {
     validate_newdata(newdata, X, allow.na = TRUE)
     test.data <- create_test_matrices(newdata)
     ret <- do.call.rcpp(multi_causal_predict, c(train.data, test.data, args))
