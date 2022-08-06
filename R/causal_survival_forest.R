@@ -99,7 +99,7 @@
 #' @examples
 #' \donttest{
 #' # Train a causal survival forest targeting a Restricted Mean Survival Time (RMST)
-#' # with maxium follow-up time set to `horizon`.
+#' # with maximum follow-up time set to `horizon`.
 #' n <- 2000
 #' p <- 5
 #' X <- matrix(runif(n * p), n, p)
@@ -304,15 +304,15 @@ causal_survival_forest <- function(X, Y, W, D,
                   "may help."))
   }
 
-  eta <- compute_eta(S.hat, C.hat, C.Y.hat, Y.hat, W.centered,
+  psi <- compute_psi(S.hat, C.hat, C.Y.hat, Y.hat, W.centered,
                      D, fY, Y.index, Y.grid, target, horizon)
-  validate_observations(eta[["numerator"]], X)
-  validate_observations(eta[["denominator"]], X)
+  validate_observations(psi[["numerator"]], X)
+  validate_observations(psi[["denominator"]], X)
 
   data <- create_train_matrices(X,
                                 treatment = W.centered,
-                                survival.numerator = eta[["numerator"]],
-                                survival.denominator = eta[["denominator"]],
+                                survival.numerator = psi[["numerator"]],
+                                survival.denominator = psi[["denominator"]],
                                 censor = D,
                                 sample.weights = sample.weights)
 
@@ -336,7 +336,7 @@ causal_survival_forest <- function(X, Y, W, D,
   forest <- do.call.rcpp(causal_survival_train, c(data, args))
   class(forest) <- c("causal_survival_forest", "grf")
   forest[["seed"]] <- seed
-  forest[["_eta"]] <- eta
+  forest[["_psi"]] <- psi
   forest[["X.orig"]] <- X
   forest[["Y.orig"]] <- Y
   forest[["W.orig"]] <- W
@@ -454,7 +454,7 @@ expected_survival <- function(S.hat, Y.grid) {
   c(cbind(1, S.hat) %*% grid.diff)
 }
 
-compute_eta <- function(S.hat,
+compute_psi <- function(S.hat,
                         C.hat,
                         C.Y.hat,
                         Y.hat,
@@ -508,7 +508,5 @@ compute_eta <- function(S.hat,
   numerator <- numerator.one - numerator.two
   denominator <- W.centered^2 # denominator simplifies to this.
 
-  list(numerator = numerator, denominator = denominator,
-       numerator.one = numerator.one, numerator.two = numerator.two,
-       C.Y.hat = C.Y.hat)
+  list(numerator = numerator, denominator = denominator, C.Y.hat = C.Y.hat)
 }

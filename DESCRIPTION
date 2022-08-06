@@ -1,6 +1,6 @@
 Package: grf
 Title: Generalized Random Forests
-Version: 2.1.0
+Version: 2.2.0
 Authors@R: c(
     person("Julie", "Tibshirani", role = c("aut", "cre"), email = "jtibs@cs.stanford.edu"),
     person("Susan", "Athey", role = "aut"),
@@ -13,21 +13,24 @@ Authors@R: c(
     person("Marvin", "Wright", role = "ctb")
     )
 BugReports: https://github.com/grf-labs/grf/issues
-Description: A pluggable package for forest-based statistical estimation and inference.
-    GRF currently provides methods for non-parametric least-squares regression,
-    quantile regression, survival regression and treatment effect estimation (optionally using instrumental
-    variables), with support for missing values.
+Description: Forest-based statistical estimation and inference.
+  GRF provides non-parametric methods for heterogeneous treatment effects estimation
+  (optionally using right-censored outcomes, multiple treatment arms or outcomes, or instrumental variables),
+  as well as least-squares regression, quantile regression, and survival regression,
+  all with support for missing covariates.
 Depends: R (>= 3.5.0)
 License: GPL-3
 LinkingTo: Rcpp, RcppEigen
 Imports: DiceKriging, lmtest, Matrix, methods, Rcpp (>= 0.12.15),
         sandwich (>= 2.4-0)
-RoxygenNote: 7.1.1
-Suggests: DiagrammeR, MASS, survival (>= 3.2-8), testthat (>= 3.0.4)
+RoxygenNote: 7.2.1
+Suggests: DiagrammeR, MASS, rdd, survival (>= 3.2-8), testthat (>=
+        3.0.4)
 SystemRequirements: GNU make
 URL: https://github.com/grf-labs/grf
+Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2022-03-17 18:08:22 UTC; erik
+Packaged: 2022-08-06 02:11:00 UTC; erik
 Author: Julie Tibshirani [aut, cre],
   Susan Athey [aut],
   Rina Friedberg [ctb],
@@ -39,4 +42,4 @@ Author: Julie Tibshirani [aut, cre],
   Marvin Wright [ctb]
 Maintainer: Julie Tibshirani <jtibs@cs.stanford.edu>
 Repository: CRAN
-Date/Publication: 2022-03-17 19:10:02 UTC
+Date/Publication: 2022-08-06 09:00:05 UTC
