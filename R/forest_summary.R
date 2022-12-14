@@ -100,7 +100,7 @@ test_calibration <- function(forest, vcov.type = "HC3") {
 #'
 #' Procedurally, we do so by regressing doubly robust scores derived from the
 #' forest against the Ai. Note the covariates Ai may consist of a subset of the Xi,
-#' or they may be distinct The case of the null model tau(Xi) ~ beta_0 is equivalent
+#' or they may be distinct. The case of the null model tau(Xi) ~ beta_0 is equivalent
 #' to fitting an average treatment effect via AIPW.
 #'
 #' In the event the treatment is continuous the inverse-propensity weight component of the
@@ -136,7 +136,7 @@ test_calibration <- function(forest, vcov.type = "HC3") {
 #'  cluster-robust inference." Journal of Human Resources 50, no. 2 (2015): 317-372.
 #' @references Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu.
 #'  "Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests."
-#'  arXiv preprint arXiv:2001.09887, 2020.
+#'  Journal of the Royal Statistical Society: Series B, forthcoming.
 #' @references MacKinnon, James G., and Halbert White. "Some heteroskedasticity-consistent
 #'  covariance matrix estimators with improved finite sample properties."
 #'  Journal of Econometrics 29.3 (1985): 305-325.
@@ -211,7 +211,9 @@ best_linear_projection <- function(forest,
   }
 
   if (!is.null(A)) {
-    A <- as.matrix(A)
+    if (is.vector(A)) {
+      dim(A) <- c(length(A), 1L)
+    }
     if (nrow(A) == NROW(forest$Y.orig)) {
       A.subset <- A[subset, , drop = FALSE]
     } else if (nrow(A) == length(subset)) {

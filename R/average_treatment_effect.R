@@ -21,7 +21,7 @@
 #' however, these weights can also be passed manually by specifying debiasing.weights.
 #'
 #' In the case of instrumental forests with a binary treatment, we provide an estimate
-#' of the the Average (Conditional) Local Averate Treatment (ACLATE).
+#' of the the Average (Conditional) Local Average Treatment (ACLATE).
 #' Specifically, given an outcome Y, treatment W and instrument Z, the (conditional) local
 #' average treatment effect is tau(x) = Cov[Y, Z | X = x] / Cov[W, Z | X = x].
 #' This is the quantity that is estimated with an instrumental forest.
@@ -70,7 +70,7 @@
 #'             Econometrica 89.1 (2021): 133-161.
 #' @references Chernozhukov, Victor, Juan Carlos Escanciano, Hidehiko Ichimura,
 #'             Whitney K. Newey, and James M. Robins. "Locally robust semiparametric
-#'             estimation." arXiv preprint arXiv:1608.00033, 2016.
+#'             estimation." Econometrica 90(4), 2022.
 #' @references Imbens, Guido W., and Joshua D. Angrist. "Identification and Estimation of
 #'             Local Average Treatment Effects." Econometrica 62(2), 1994.
 #' @references Li, Fan, Kari Lock Morgan, and Alan M. Zaslavsky.
