@@ -6,21 +6,22 @@
 #' tau(X) = E[min(T(1), horizon) - min(T(0), horizon) | X = x],
 #' where T(1) and T(0) are potental outcomes corresponding to the two possible treatment states
 #' and `horizon` is the maximum follow-up time, or 2)
-#' tau(X) = P(T(1) > horizon | X = x) - P(T(0) > horizon | X = x), for a chosen time point `horizon`.
+#' tau(X) = P[T(1) > horizon | X = x] - P[T(0) > horizon | X = x], for a chosen time point `horizon`.
 #'
 #'
-#' The causal survival forest paper defines the survival function in the 2nd estimand with weak inequality.
-#' It is defined using strict inequality in the R package (note that P(T >= h) = P(T > h - epsilon)).
+#' When W is continuous, we effectively estimate an average partial effect corresponding to
+#' 1) Cov[min(T, horizon), W | X = x] / Var[W | X = x] or 2) Cov[1(T > horizon), W | X = x] / Var[W | X = x],
+#' and interpret it as a treatment effect given unconfoundedness.
 #'
 #' @param X The covariates.
 #' @param Y The event time (must be non-negative).
-#' @param W The treatment assignment (must be a binary vector with no NAs).
-#' @param D The event type (0: censored, 1: failure).
+#' @param W The treatment assignment (must be a binary or real numeric vector with no NAs).
+#' @param D The event type (0: censored, 1: failure/observed event).
 #' @param W.hat Estimates of the treatment propensities E[W | X = x]. If W.hat = NULL,
 #'              these are estimated using a separate regression forest. Default is NULL.
 #' @param target The target estimand. Choices are Restricted Mean Survival Time ("RMST") which estimates 1)
 #'  E[min(T(1), horizon) - min(T(0), horizon) | X = x], or "survival.probability" which estimates 2)
-#'  P(T(1) > horizon | X = x) - P(T(0) > horizon | X = x). Default is "RMST".
+#'  P[T(1) > horizon | X = x] - P[T(0) > horizon | X = x]. Default is "RMST".
 #' @param horizon A scalar that defines the estimand (required). If target is "RMST" then this defines
 #'  the maximum follow-up time. If target is "survival.probability", then this defines the time point
 #'  for the absolute risk difference estimate.
@@ -94,7 +95,7 @@
 #'
 #' @references Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu.
 #'  "Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests."
-#'  Journal of the Royal Statistical Society: Series B, forthcoming.
+#'  Journal of the Royal Statistical Society: Series B, 85(2), 2023.
 #'
 #' @examples
 #' \donttest{
@@ -183,9 +184,6 @@ causal_survival_forest <- function(X, Y, W, D,
   if (any(Y < 0)) {
     stop("The event times must be non-negative.")
   }
-  if (!all(W %in% c(0, 1))) {
-    stop("The treatment values can only be 0 or 1.")
-  }
   if (!all(D %in% c(0, 1))) {
     stop("The censor values can only be 0 or 1.")
   }
@@ -253,37 +251,63 @@ causal_survival_forest <- function(X, Y, W, D,
                         honesty.prune.leaves = TRUE,
                         alpha = alpha,
                         prediction.type = "Nelson-Aalen", # to guarantee non-zero estimates.
-                        compute.oob.predictions = FALSE,
+                        compute.oob.predictions = TRUE,
                         num.threads = num.threads,
                         seed = seed)
 
+  # Compute survival-based nuisance components (https://arxiv.org/abs/2001.09887)
+  # m(x) relies on the survival function conditional on only X, while Q(x) relies on the conditioning (X, W).
+  # Instead of fitting two separate survival forests, we can use the forest fit on (X, W) to compute m(X)
+  # using the identity
   # E[f(T) | X] = e(X) E[f(T) | X, W = 1] + (1 - e(X)) E[f(T) | X, W = 0]
+  # (for this to work W has to be binary).
   sf.survival <- do.call(survival_forest, c(list(X = cbind(X, W), Y = Y, D = D), args.nuisance))
-  # The survival function conditioning on being treated S(t, x, 1) estimated with an "S-learner".
-  # Computing OOB estimates for modified training samples is not a workflow we have implemented,
-  # so we do it with a manual workaround here. Note that compute.oob.predictions has to be FALSE.
-  sf.survival[["X.orig"]][, ncol(X) + 1] <- rep(1, nrow(X))
-  S1.hat <- predict(sf.survival)$predictions
-  # The survival function conditioning on being a control unit S(t, x, 0) estimated with an "S-learner".
-  sf.survival[["X.orig"]][, ncol(X) + 1] <- rep(0, nrow(X))
-  S0.hat <- predict(sf.survival)$predictions
-  sf.survival[["X.orig"]][, ncol(X) + 1] <- W
-  if (target == "RMST") {
-    Y.hat <- W.hat * expected_survival(S1.hat, sf.survival$failure.times) +
-      (1 - W.hat) * expected_survival(S0.hat, sf.survival$failure.times)
-  } else {
-    horizonS.index <- findInterval(horizon, sf.survival$failure.times)
-    if (horizonS.index == 0) {
-      Y.hat <- rep(1, nrow(X))
+
+  binary.W <- all(W %in% c(0, 1))
+  if (binary.W) {
+    # The survival function conditioning on being treated S(t, x, 1) estimated with an "S-learner".
+    # Computing OOB estimates for modified training samples is not a workflow we have implemented,
+    # so we do it with a manual workaround here (deleting/re-inserting precomputed predictions)
+    .predictions <- sf.survival[["predictions"]]
+    sf.survival[["predictions"]] <- NULL
+    sf.survival[["X.orig"]][, ncol(X) + 1] <- rep(1, nrow(X))
+    S1.hat <- predict(sf.survival, num.threads = num.threads)$predictions
+    # The survival function conditioning on being a control unit S(t, x, 0) estimated with an "S-learner".
+    sf.survival[["X.orig"]][, ncol(X) + 1] <- rep(0, nrow(X))
+    S0.hat <- predict(sf.survival, num.threads = num.threads)$predictions
+    sf.survival[["X.orig"]][, ncol(X) + 1] <- W
+    sf.survival[["predictions"]] <- .predictions
+    if (target == "RMST") {
+      Y.hat <- W.hat * expected_survival(S1.hat, sf.survival$failure.times) +
+        (1 - W.hat) * expected_survival(S0.hat, sf.survival$failure.times)
     } else {
-      Y.hat <- W.hat * S1.hat[, horizonS.index] + (1 - W.hat) * S0.hat[, horizonS.index]
+      horizonS.index <- findInterval(horizon, sf.survival$failure.times)
+      if (horizonS.index == 0) {
+        Y.hat <- rep(1, nrow(X))
+      } else {
+        Y.hat <- W.hat * S1.hat[, horizonS.index] + (1 - W.hat) * S0.hat[, horizonS.index]
+      }
+    }
+  } else {
+    # If continuous W fit a separate survival forest to estimate E[f(T) | X].
+    sf.Y <- do.call(survival_forest, c(list(X = X, Y = Y, D = D), args.nuisance))
+    SY.hat <- predict(sf.Y)$predictions
+    if (target == "RMST") {
+      Y.hat <- expected_survival(SY.hat, sf.Y$failure.times)
+    } else {
+      horizonS.index <- findInterval(horizon, sf.survival$failure.times)
+      if (horizonS.index == 0) {
+        Y.hat <- rep(1, nrow(X))
+      } else {
+        Y.hat <- SY.hat[, horizonS.index]
+      }
     }
   }
 
-  # The conditional survival function S(t, x, w).
+  # The conditional survival function S(t, x, w) used to construct Q(x).
   S.hat <- predict(sf.survival, failure.times = Y.grid)$predictions
+
   # The conditional survival function for the censoring process S_C(t, x, w).
-  args.nuisance$compute.oob.predictions <- TRUE
   sf.censor <- do.call(survival_forest, c(list(X = cbind(X, W), Y = Y, D = 1 - D), args.nuisance))
   C.hat <- predict(sf.censor, failure.times = Y.grid)$predictions
   if (target == "survival.probability") {

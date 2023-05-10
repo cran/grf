@@ -38,16 +38,16 @@ causal_survival_forest(
 
 \item{Y}{The event time (must be non-negative).}
 
-\item{W}{The treatment assignment (must be a binary vector with no NAs).}
+\item{W}{The treatment assignment (must be a binary or real numeric vector with no NAs).}
 
-\item{D}{The event type (0: censored, 1: failure).}
+\item{D}{The event type (0: censored, 1: failure/observed event).}
 
 \item{W.hat}{Estimates of the treatment propensities E[W | X = x]. If W.hat = NULL,
 these are estimated using a separate regression forest. Default is NULL.}
 
 \item{target}{The target estimand. Choices are Restricted Mean Survival Time ("RMST") which estimates 1)
 E[min(T(1), horizon) - min(T(0), horizon) | X = x], or "survival.probability" which estimates 2)
-P(T(1) > horizon | X = x) - P(T(0) > horizon | X = x). Default is "RMST".}
+P[T(1) > horizon | X = x] - P[T(0) > horizon | X = x]. Default is "RMST".}
 
 \item{horizon}{A scalar that defines the estimand (required). If target is "RMST" then this defines
 the maximum follow-up time. If target is "survival.probability", then this defines the time point
@@ -147,11 +147,12 @@ We estimate either 1)
 tau(X) = E[min(T(1), horizon) - min(T(0), horizon) | X = x],
 where T(1) and T(0) are potental outcomes corresponding to the two possible treatment states
 and `horizon` is the maximum follow-up time, or 2)
-tau(X) = P(T(1) > horizon | X = x) - P(T(0) > horizon | X = x), for a chosen time point `horizon`.
+tau(X) = P[T(1) > horizon | X = x] - P[T(0) > horizon | X = x], for a chosen time point `horizon`.
 }
 \details{
-The causal survival forest paper defines the survival function in the 2nd estimand with weak inequality.
-It is defined using strict inequality in the R package (note that P(T >= h) = P(T > h - epsilon)).
+When W is continuous, we effectively estimate an average partial effect corresponding to
+1) Cov[min(T, horizon), W | X = x] / Var[W | X = x] or 2) Cov[1(T > horizon), W | X = x] / Var[W | X = x],
+and interpret it as a treatment effect given unconfoundedness.
 }
 \examples{
 \donttest{
@@ -205,5 +206,5 @@ paste("AUTOC:", round(rate$estimate, 2), "+/", round(1.96 * rate$std.err, 2))
 \references{
 Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu.
  "Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests."
- Journal of the Royal Statistical Society: Series B, forthcoming.
+ Journal of the Royal Statistical Society: Series B, 85(2), 2023.
 }

@@ -31,7 +31,7 @@ survival_forest(
 
 \item{Y}{The event time (must be non-negative).}
 
-\item{D}{The event type (0: censored, 1: failure).}
+\item{D}{The event type (0: censored, 1: failure/observed event).}
 
 \item{failure.times}{A vector of event times to fit the survival curve at. If NULL, then all the observed
 failure times are used. This speeds up forest estimation by constraining the event grid. Observed event
@@ -149,7 +149,7 @@ if (require("survival", quietly = TRUE)) {
 \references{
 Cui, Yifan, Michael R. Kosorok, Erik Sverdrup, Stefan Wager, and Ruoqing Zhu.
  "Estimating Heterogeneous Treatment Effects with Right-Censored Data via Causal Survival Forests."
- Journal of the Royal Statistical Society: Series B, forthcoming.
+ Journal of the Royal Statistical Society: Series B, 85(2), 2023.
 
 Ishwaran, Hemant, Udaya B. Kogalur, Eugene H. Blackstone, and Michael S. Lauer.
   "Random survival forests." The Annals of Applied Statistics 2.3 (2008): 841-860.

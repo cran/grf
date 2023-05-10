@@ -1,6 +1,6 @@
 Package: grf
 Title: Generalized Random Forests
-Version: 2.2.1
+Version: 2.3.0
 Authors@R: c(
     person("Julie", "Tibshirani", role = c("aut", "cre"), email = "jtibs@cs.stanford.edu"),
     person("Susan", "Athey", role = "aut"),
@@ -23,14 +23,14 @@ License: GPL-3
 LinkingTo: Rcpp, RcppEigen
 Imports: DiceKriging, lmtest, Matrix, methods, Rcpp (>= 0.12.15),
         sandwich (>= 2.4-0)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Suggests: DiagrammeR, MASS, rdd, survival (>= 3.2-8), testthat (>=
         3.0.4)
 SystemRequirements: GNU make
 URL: https://github.com/grf-labs/grf
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2022-12-14 21:47:22 UTC; erikcs
+Packaged: 2023-05-10 21:45:14 UTC; erikcs
 Author: Julie Tibshirani [aut, cre],
   Susan Athey [aut],
   Rina Friedberg [ctb],
@@ -42,4 +42,4 @@ Author: Julie Tibshirani [aut, cre],
   Marvin Wright [ctb]
 Maintainer: Julie Tibshirani <jtibs@cs.stanford.edu>
 Repository: CRAN
-Date/Publication: 2022-12-14 23:10:02 UTC
+Date/Publication: 2023-05-10 23:00:02 UTC
