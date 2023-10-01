@@ -79,6 +79,9 @@
 #'
 #' @return A trained instrumental forest object.
 #'
+#' @references Athey, Susan, Julie Tibshirani, and Stefan Wager. "Generalized Random Forests".
+#'  Annals of Statistics, 47(2), 2019.
+#'
 #' @examples
 #' \donttest{
 #' # Train an instrumental forest.
@@ -94,6 +97,9 @@
 #'
 #' # Predict on out-of-bag training samples.
 #' iv.pred <- predict(iv.forest)
+#'
+#' # Estimate a (local) average treatment effect.
+#' average_treatment_effect(iv.forest)
 #' }
 #'
 #' @export
@@ -290,6 +296,9 @@ instrumental_forest <- function(X, Y, W, Z,
 #'
 #' # Predict on out-of-bag training samples.
 #' iv.pred <- predict(iv.forest)
+#'
+#' # Estimate a (local) average treatment effect.
+#' average_treatment_effect(iv.forest)
 #' }
 #'
 #' @method predict instrumental_forest
