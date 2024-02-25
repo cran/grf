@@ -1,14 +1,14 @@
 Package: grf
 Title: Generalized Random Forests
-Version: 2.3.1
+Version: 2.3.2
 Authors@R: c(
-    person("Julie", "Tibshirani", role = c("aut", "cre"), email = "jtibs@cs.stanford.edu"),
+    person("Julie", "Tibshirani", role = "aut", email = "jtibs@cs.stanford.edu"),
     person("Susan", "Athey", role = "aut"),
     person("Rina", "Friedberg", role = "ctb"),
     person("Vitor", "Hadad", role = "ctb"),
     person("David", "Hirshberg", role = "ctb"),
     person("Luke", "Miner", role = "ctb"),
-    person("Erik", "Sverdrup", role = "aut"),
+    person("Erik", "Sverdrup", role = c("aut", "cre"), email = "erik.sverdrup@monash.edu"),
     person("Stefan", "Wager", role = "aut"),
     person("Marvin", "Wright", role = "ctb")
     )
@@ -30,16 +30,16 @@ SystemRequirements: GNU make
 URL: https://github.com/grf-labs/grf
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-09-30 22:00:47 UTC; erikcs
-Author: Julie Tibshirani [aut, cre],
+Packaged: 2024-02-25 02:17:10 UTC; erikcs
+Author: Julie Tibshirani [aut],
   Susan Athey [aut],
   Rina Friedberg [ctb],
   Vitor Hadad [ctb],
   David Hirshberg [ctb],
   Luke Miner [ctb],
-  Erik Sverdrup [aut],
+  Erik Sverdrup [aut, cre],
   Stefan Wager [aut],
   Marvin Wright [ctb]
-Maintainer: Julie Tibshirani <jtibs@cs.stanford.edu>
+Maintainer: Erik Sverdrup <erik.sverdrup@monash.edu>
 Repository: CRAN
-Date/Publication: 2023-10-01 00:10:02 UTC
+Date/Publication: 2024-02-25 07:30:02 UTC
