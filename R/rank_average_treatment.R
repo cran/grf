@@ -56,7 +56,7 @@
 #' \donttest{
 #' # Simulate a simple medical example with a binary outcome and heterogeneous treatment effects.
 #' # We're imagining that the treatment W decreases the risk of getting a stroke for some units,
-#' # while having no effect on the other units (those with X2 < 0).
+#' # while having no effect on the other units (those with X1 < 0).
 #' n <- 2000
 #' p <- 5
 #' X <- matrix(rnorm(n * p), n, p)
@@ -532,7 +532,7 @@ estimate_rate <- function(data, indices, q, wtd.mean) {
 boot_grf <- function(data, statistic, R, clusters, half.sample = TRUE, ...) {
   samples.by.cluster <- split(seq_along(clusters), clusters)
   n <- length(samples.by.cluster) # number of clusters
-  if (n <= 1 || (half.sample && floor(n / 2) <= 1)) {
+  if (n <= 1) {
     stop("Cannot bootstrap sample with only one effective unit.")
   }
   if (half.sample) {
