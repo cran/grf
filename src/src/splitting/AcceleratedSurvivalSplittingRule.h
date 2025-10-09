@@ -17,8 +17,8 @@
   along with grf. If not, see <http://www.gnu.org/licenses/>.
  #-------------------------------------------------------------------------------*/
 
-#ifndef GRF_SURVIVALSPLITTINGRULE_H
-#define GRF_SURVIVALSPLITTINGRULE_H
+#ifndef GRF_ACCELERATEDSURVIVALSPLITTINGRULE_H
+#define GRF_ACCELERATEDSURVIVALSPLITTINGRULE_H
 
 #include "Eigen/Dense"
 
@@ -28,9 +28,14 @@
 
 namespace grf {
 
-class SurvivalSplittingRule final: public SplittingRule {
+/**
+  * This splitting rule is an accelerated version of SurvivalSplittingRule.
+  * It computes an approximation of the logrank criterion that can be
+  * updated quickly at every split value.
+  */
+class AcceleratedSurvivalSplittingRule final: public SplittingRule {
 public:
-  SurvivalSplittingRule(size_t num_data_rows, double alpha);
+  AcceleratedSurvivalSplittingRule(size_t num_data_rows, double alpha);
 
   bool find_best_split(const Data& data,
                        size_t node,
@@ -66,26 +71,15 @@ private:
                              double& best_logrank,
                              bool& best_send_missing_left,
                              const std::vector<size_t>& samples,
-                             const std::vector<double>& count_failure,
-                             const std::vector<double>& at_risk,
-                             const std::vector<double>& numerator_weights,
-                             const std::vector<double>& denominator_weights);
-
-  inline double compute_logrank(size_t num_failures,
-                                size_t n_left,
-                                std::vector<double>& cum_sums,
-                                const std::vector<double>& left_count_failure,
-                                const std::vector<double>& left_count_censor,
-                                const std::vector<double>& at_risk,
-                                const std::vector<double>& numerator_weights,
-                                const std::vector<double>& denominator_weights);
+                             const std::vector<double>& cumsum_weights,
+                             double gamma_node);
 
   std::vector<size_t> relabeled_failures;
   double alpha;
 
-  DISALLOW_COPY_AND_ASSIGN(SurvivalSplittingRule);
+  DISALLOW_COPY_AND_ASSIGN(AcceleratedSurvivalSplittingRule);
 };
 
 } // namespace grf
 
-#endif //GRF_SURVIVALSPLITTINGRULE_H
+#endif //GRF_ACCELERATEDSURVIVALSPLITTINGRULE_H

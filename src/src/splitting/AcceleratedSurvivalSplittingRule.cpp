@@ -19,15 +19,15 @@
 
 #include <algorithm>
 
-#include "SurvivalSplittingRule.h"
+#include "AcceleratedSurvivalSplittingRule.h"
 
 namespace grf {
 
-SurvivalSplittingRule::SurvivalSplittingRule(size_t num_data_rows, double alpha):
+AcceleratedSurvivalSplittingRule::AcceleratedSurvivalSplittingRule(size_t num_data_rows, double alpha):
     relabeled_failures(num_data_rows, 0), alpha(alpha) {
 }
 
-bool SurvivalSplittingRule::find_best_split(const Data& data,
+bool AcceleratedSurvivalSplittingRule::find_best_split(const Data& data,
                                             size_t node,
                                             const std::vector<size_t>& possible_split_vars,
                                             const Eigen::ArrayXXd& responses_by_sample,
@@ -58,7 +58,7 @@ bool SurvivalSplittingRule::find_best_split(const Data& data,
   return false;
 }
 
-void SurvivalSplittingRule::find_best_split_internal(const Data& data,
+void AcceleratedSurvivalSplittingRule::find_best_split_internal(const Data& data,
                                                      const std::vector<size_t>& possible_split_vars,
                                                      const Eigen::ArrayXXd& responses_by_sample,
                                                      const std::vector<size_t>& samples,
@@ -100,7 +100,7 @@ void SurvivalSplittingRule::find_best_split_internal(const Data& data,
   at_risk[0] = static_cast<double>(size_node);
 
   std::vector<double> numerator_weights(num_failures + 1);
-  std::vector<double> denominator_weights(num_failures + 1);
+  std::vector<double> cumsum_weights(num_failures + 1);
 
   // Relabel the failure values to range from 0 to the number of failures in this node
   for (auto& sample : samples) {
@@ -117,27 +117,29 @@ void SurvivalSplittingRule::find_best_split_internal(const Data& data,
 
   for (size_t time = 1; time < num_failures + 1; time++) {
     at_risk[time] = at_risk[time - 1] - count_failure[time - 1] - count_censor[time - 1];
-
-    /* The logrank statistic is (using the notation in Ishwaran et al. (2008))
-     * sum over all k: dk,l - Yk,l * dk/Yk divided by:
-     *  Yk,l / Yk * (1 - Yk,l / Yk) * (Yk - dk) / (Yk - 1) dk
-     * All terms involving only Yk or dk remain unchanged for each split
-     * and can be precomputed here.
-    */
     double Yk = at_risk[time];
     double dk = count_failure[time];
     numerator_weights[time] = dk / Yk;
-    denominator_weights[time] = (Yk - dk) / (Yk - 1) * dk / (Yk * Yk);
+  }
+
+  for (size_t time = 1; time < num_failures + 1; time++) {
+    cumsum_weights[time] = cumsum_weights[time - 1] + numerator_weights[time];
+  }
+
+  double gamma_node = 0;
+  for (auto& sample : samples) {
+    size_t sample_time = relabeled_failures[sample];
+    gamma_node += cumsum_weights[sample_time];
   }
 
   for (auto& var : possible_split_vars) {
     find_best_split_value(data, var, size_node, min_child_size, num_failures_node, num_failures,
                           best_value, best_var, best_logrank, best_send_missing_left, samples,
-                          count_failure, at_risk, numerator_weights, denominator_weights);
+                          cumsum_weights, gamma_node);
   }
 }
 
-void SurvivalSplittingRule::find_best_split_value(const Data& data,
+void AcceleratedSurvivalSplittingRule::find_best_split_value(const Data& data,
                                                   size_t var,
                                                   size_t size_node,
                                                   size_t min_child_size,
@@ -148,10 +150,8 @@ void SurvivalSplittingRule::find_best_split_value(const Data& data,
                                                   double& best_logrank,
                                                   bool& best_send_missing_left,
                                                   const std::vector<size_t>& samples,
-                                                  const std::vector<double>& count_failure,
-                                                  const std::vector<double>& at_risk,
-                                                  const std::vector<double>& numerator_weights,
-                                                  const std::vector<double>& denominator_weights) {
+                                                  const std::vector<double>& cumsum_weights,
+                                                  double gamma_node) {
   // possible_split_values contains all the unique split values for this variable in increasing order
   // sorted_samples contains the samples in this node in increasing order
   // if there are missing values, these are placed first
@@ -165,34 +165,35 @@ void SurvivalSplittingRule::find_best_split_value(const Data& data,
     return;
   }
 
-  std::vector<double> left_count_failure(num_failures + 1);
-  std::vector<double> left_count_censor(num_failures + 1);
-  std::vector<double> cum_sums(num_failures + 1);
   size_t n_missing = 0;
   size_t num_failures_missing = 0;
+  double numerator_missing = 0;
+  double E1_missing = 0;
 
   // Loop through all samples to scan for missing values
   for (size_t i = 0; i < size_node - 1; i++) {
     size_t sample = sorted_samples[i];
     double sample_value = data.get(sample, var);
-    size_t sample_time = relabeled_failures[sample];
-
     if (std::isnan(sample_value)) {
-      if (data.is_failure(sample)) {
-        ++left_count_failure[sample_time];
-        ++num_failures_missing;
-      } else {
-        ++left_count_censor[sample_time];
-      }
+      size_t sample_time = relabeled_failures[sample];
+      double delta = data.is_failure(sample) ? 1.0 : 0.0;
+      double gammai = cumsum_weights[sample_time];
+      numerator_missing += delta - gammai;
+      E1_missing += gammai;
       ++n_missing;
+      if (delta > 0) {
+        ++num_failures_missing;
+      }
     }
   }
 
   size_t num_splits = possible_split_values.size() - 1;
-  size_t n_left = n_missing;
   size_t num_failures_left = num_failures_missing;
   size_t split_index = 0;
   size_t start_sample = n_missing > 0 ? n_missing - 1 : 0;
+  double numerator = numerator_missing;
+  double E1 = E1_missing;
+  double E2 = gamma_node - E1;
 
   for (bool send_left : {true, false}) {
     if (!send_left) {
@@ -201,10 +202,9 @@ void SurvivalSplittingRule::find_best_split_value(const Data& data,
        break;
      }
      // Else, send all missing right
-     std::fill(left_count_failure.begin(), left_count_failure.end(), 0.0);
-     std::fill(left_count_censor.begin(), left_count_censor.end(), 0.0);
-     n_left = 0;
      num_failures_left = 0;
+     numerator = 0;
+     E1 = 0;
      // Not necessary to evaluate splitting on NaN when sending right.
      split_index = 1;
      start_sample = n_missing;
@@ -216,21 +216,19 @@ void SurvivalSplittingRule::find_best_split_value(const Data& data,
       double sample_value = data.get(sample, var);
       double next_sample_value = data.get(next_sample, var);
       size_t sample_time = relabeled_failures[sample];
+      double delta = data.is_failure(sample) ? 1.0 : 0.0;
 
       // If there are missing values, we evaluate splitting on NaN when send_left is true
       // and i = n_missing - 1, which is why we need to check for missing below.
       bool split_on_missing = std::isnan(sample_value);
 
       if (!split_on_missing) {
-        ++n_left;
-      }
-
-      if (!split_on_missing) {
-        if (data.is_failure(sample)) {
-          ++left_count_failure[sample_time];
+        double gammai = cumsum_weights[sample_time];
+        numerator += delta - gammai;
+        E1 += gammai;
+        E2 = gamma_node - E1;
+        if (delta > 0) {
           ++num_failures_left;
-        } else {
-          ++left_count_censor[sample_time];
         }
       }
 
@@ -250,8 +248,14 @@ void SurvivalSplittingRule::find_best_split_value(const Data& data,
 
       // If the next sample value is different we can evaluate a split here
       if (sample_value != next_sample_value) {
-        double logrank = compute_logrank(num_failures, n_left, cum_sums, left_count_failure, left_count_censor,
-                                         at_risk, numerator_weights, denominator_weights);
+        // The numerator is identical to the one in SurvivalSplittingRule, but calculated in O(1) updates
+        // The denominator is an approximation, but which can be updated in O(1) (details are in https://arxiv.org/abs/2510.03665)
+        double logrank = 0;
+        if (E1 > 0 && E2 > 0) {
+          double denominator = 1 / E1 + 1 / E2;
+          logrank = numerator * numerator * denominator;
+        }
+
         if (logrank > best_logrank) {
           best_value = possible_split_values[split_index];
           best_var = var;
@@ -266,40 +270,6 @@ void SurvivalSplittingRule::find_best_split_value(const Data& data,
       }
     }
   }
-}
-
-inline double SurvivalSplittingRule::compute_logrank(size_t num_failures,
-                                                     size_t n_left,
-                                                     std::vector<double>& cum_sums,
-                                                     const std::vector<double>& left_count_failure,
-                                                     const std::vector<double>& left_count_censor,
-                                                     const std::vector<double>& at_risk,
-                                                     const std::vector<double>& numerator_weights,
-                                                     const std::vector<double>& denominator_weights) {
-  double numerator = 0;
-  double denominator = 0;
-  double logrank = 0;
-  for (size_t time = 1; time < num_failures + 1; time++) {
-    cum_sums[time] = cum_sums[time - 1] + left_count_failure[time - 1] + left_count_censor[time - 1];
-    double Yl = n_left - cum_sums[time];
-    if (Yl == 0) {
-      break;
-    }
-    double Y = at_risk[time];
-    // The logrank denominator requires at least two at risk
-    if (Y < 2) {
-      break;
-    }
-    double dl = left_count_failure[time];
-    numerator = numerator + dl - Yl * numerator_weights[time];
-    denominator = denominator + Yl * (Y - Yl) * denominator_weights[time];
-  }
-
-  if (denominator > 0) {
-    logrank = numerator * numerator / denominator;
-  }
-
-  return logrank;
 }
 
 } // namespace grf
