@@ -22,6 +22,7 @@
 
 #include "Eigen/Sparse"
 #include "analysis/SplitFrequencyComputer.h"
+#include "commons/ProgressBar.h"
 #include "commons/globals.h"
 #include "forest/Forest.h"
 #include "prediction/collector/SampleWeightComputer.h"
@@ -62,28 +63,31 @@ Eigen::SparseMatrix<double> compute_sample_weights(const Rcpp::List& forest_obje
   num_threads = ForestOptions::validate_num_threads(num_threads);
 
   TreeTraverser tree_traverser(num_threads);
-  SampleWeightComputer weight_computer;
-
   std::vector<std::vector<size_t>> leaf_nodes_by_tree = tree_traverser.get_leaf_nodes(forest, data, oob_prediction);
   std::vector<std::vector<bool>> trees_by_sample = tree_traverser.get_valid_trees_by_sample(forest, data, oob_prediction);
 
   size_t num_samples = data.get_num_rows();
   size_t num_neighbors = train_data.get_num_rows();
+  SampleWeightComputer weight_computer(num_neighbors);
 
   // From http://eigen.tuxfamily.org/dox/group__TutorialSparse.html:
   // Filling a sparse matrix effectively
   std::vector<Eigen::Triplet<double>> triplet_list;
   triplet_list.reserve(num_neighbors);
   Eigen::SparseMatrix<double> result(num_samples, num_neighbors);
+  ProgressBar progress_bar(num_samples, "prediction [weights]: ");
 
   for (size_t sample = 0; sample < num_samples; sample++) {
-    std::unordered_map<size_t, double> weights = weight_computer.compute_weights(
+    std::pair<std::vector<size_t>, std::vector<double>> weights = weight_computer.compute_weights(
         sample, forest, leaf_nodes_by_tree, trees_by_sample);
-    for (auto it = weights.begin(); it != weights.end(); it++) {
-      size_t neighbor = it->first;
-      double weight = it->second;
+    for (size_t i = 0; i < weights.first.size(); i++) {
+      size_t neighbor = weights.first[i];
+      double weight = weights.second[i];
       triplet_list.emplace_back(sample, neighbor, weight);
     }
+    progress_bar.increment(1);
+    progress_bar.update();
+    Rcpp::checkUserInterrupt();
   }
   result.setFromTriplets(triplet_list.begin(), triplet_list.end());
 
@@ -94,7 +98,9 @@ Eigen::SparseMatrix<double> compute_sample_weights(const Rcpp::List& forest_obje
 Eigen::SparseMatrix<double> compute_weights(const Rcpp::List& forest_object,
                                             const Rcpp::NumericMatrix& train_matrix,
                                             const Rcpp::NumericMatrix& test_matrix,
-                                            unsigned int num_threads) {
+                                            unsigned int num_threads,
+                                            bool verbose) {
+  grf::runtime_context.verbose_stream = verbose ? &Rcpp::Rcout : nullptr;
   return compute_sample_weights(forest_object, train_matrix,
                                 test_matrix, num_threads, false);
 }
@@ -102,7 +108,9 @@ Eigen::SparseMatrix<double> compute_weights(const Rcpp::List& forest_object,
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> compute_weights_oob(const Rcpp::List& forest_object,
                                                 const Rcpp::NumericMatrix& train_matrix,
-                                                unsigned int num_threads) {
+                                                unsigned int num_threads,
+                                                bool verbose) {
+  grf::runtime_context.verbose_stream = verbose ? &Rcpp::Rcout : nullptr;
   return compute_sample_weights(forest_object, train_matrix,
                                 train_matrix, num_threads, true);
 }

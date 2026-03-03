@@ -20,7 +20,9 @@
 #ifndef GRF_OPTIMIZEDPREDICTIONCOLLECTOR_H
 #define GRF_OPTIMIZEDPREDICTIONCOLLECTOR_H
 
+#include <atomic>
 
+#include "commons/ProgressBar.h"
 #include "forest/Forest.h"
 #include "prediction/collector/PredictionCollector.h"
 
@@ -47,7 +49,9 @@ private:
                                                     bool estimate_variance,
                                                     bool estimate_error,
                                                     size_t start,
-                                                    size_t num_samples) const;
+                                                    size_t num_samples,
+                                                    ProgressBar& progress_bar,
+                                                    std::atomic<bool>& user_interrupt_flag) const;
 
   void add_prediction_values(size_t node,
                              const PredictionValues& prediction_values,
