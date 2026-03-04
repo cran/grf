@@ -1,4 +1,4 @@
-d2128e42766fddc50bd588a1ba6b8301 *DESCRIPTION
+39427a36d45046f10f85635ac6574416 *DESCRIPTION
 bec128ce089f090a3148b15b3742f6ba *NAMESPACE
 5b0ba54908788a2d92a12d525869bf43 *R/RcppExports.R
 23b2de15e89ebba010f0cdf4231cee4a *R/analysis_tools.R
@@ -34,7 +34,7 @@ f50d782d281753c56cf0f391f26c6ec0 *data/attentionrct.rda
 d11e75d18992c4e12edfb95c84096d9e *data/schoolrct.rda
 0c8bbbd61d14ddd776057cb78de4021a *inst/doc/grf_guide.R
 4e5575301eb86c988ea9b39155e22a5b *inst/doc/grf_guide.Rmd
-c47a66e517b359c6c799b64d759d78d0 *inst/doc/grf_guide.pdf
+cb9e8d9853c1be2825235df71520f960 *inst/doc/grf_guide.pdf
 f20f58101dc8fa21e3a44d41b9edf07d *man/attentionrct.Rd
 8bc9eac69eb52e8ffa1a9ff2c694d007 *man/average_treatment_effect.Rd
 4605ac84e9d0dd3e7252a6d53e165ead *man/best_linear_projection.Rd
@@ -136,7 +136,7 @@ e498543e54d31a68740c8d57b8cda398 *src/src/forest/ForestOptions.cpp
 7647d62a31900909c4b5671cb5c44539 *src/src/forest/ForestPredictor.h
 1f3264e1334fecd6d80eed4d04e96493 *src/src/forest/ForestPredictors.cpp
 a00ea2d06afb2c029883554e342fdd12 *src/src/forest/ForestPredictors.h
-88f497388a1cba1016085ab6682a3500 *src/src/forest/ForestTrainer.cpp
+f14da7270e289e2ea0863fbaacf63b4b *src/src/forest/ForestTrainer.cpp
 f18bc18ddcbe06b7f2140fa55f378185 *src/src/forest/ForestTrainer.h
 9964150df22a7f8bc083d867af2c7fb2 *src/src/forest/ForestTrainers.cpp
 4000972cd13f040dd8ae60e5022b2c24 *src/src/forest/ForestTrainers.h
@@ -168,14 +168,14 @@ ab039d8add025850a559a985fa80edcf *src/src/prediction/QuantilePredictionStrategy.
 6cb93cd700d14f5d46fa91e8c51f9721 *src/src/prediction/RegressionPredictionStrategy.h
 fa200db3708368bb8134f0c616e54d9e *src/src/prediction/SurvivalPredictionStrategy.cpp
 d0fe3aa7f4e743ae865d1b8e024436b0 *src/src/prediction/SurvivalPredictionStrategy.h
-902f8bca4a77a3832b3b8721e38dfea0 *src/src/prediction/collector/DefaultPredictionCollector.cpp
+f41917011aa264c817e266569a6ab0a3 *src/src/prediction/collector/DefaultPredictionCollector.cpp
 8541f822bf4bacf90da46d84f920e39e *src/src/prediction/collector/DefaultPredictionCollector.h
-d9c499e3fafde8dcab017eb099819059 *src/src/prediction/collector/OptimizedPredictionCollector.cpp
+4cd231a845d9107ffd0b634d7531b1cb *src/src/prediction/collector/OptimizedPredictionCollector.cpp
 b2dd476fba3efba605f56a2ba7f5208f *src/src/prediction/collector/OptimizedPredictionCollector.h
 6b603cfdd4ef805bb9dd11a549e6e473 *src/src/prediction/collector/PredictionCollector.h
 2f24164e52a6bc05123c848d6c805d76 *src/src/prediction/collector/SampleWeightComputer.cpp
 a1d2c6adf4a898123e3bdc84ea1e672c *src/src/prediction/collector/SampleWeightComputer.h
-db38bf53e8806194c6cebfcba48641fb *src/src/prediction/collector/TreeTraverser.cpp
+a93ec48144c31999cd40087e4bee4a89 *src/src/prediction/collector/TreeTraverser.cpp
 10ef676c224174e63315e4f56fb5919c *src/src/prediction/collector/TreeTraverser.h
 26658130f9441bdffb1df0978600929c *src/src/relabeling/CausalSurvivalRelabelingStrategy.cpp
 7d5a2d19d3637dea3b13fffd543cc811 *src/src/relabeling/CausalSurvivalRelabelingStrategy.h
